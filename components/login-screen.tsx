@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useState } from "react";
-import { LockKeyhole, Pill } from "lucide-react";
+import { Eye, EyeOff } from "lucide-react";
 import { Button } from "./ui/button";
 import { Field, Input } from "./ui/field";
 
@@ -14,6 +14,7 @@ export function LoginScreen({
 }) {
   const [email, setEmail] = useState(isDemo ? "demo@medquote.id" : "");
   const [password, setPassword] = useState(isDemo ? "medquote" : "");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -39,71 +40,75 @@ export function LoginScreen({
   };
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-slate-50 p-4">
-      <section className="w-full max-w-[400px] rounded-lg border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
-        <div className="mb-7 flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-md bg-teal-800 text-white">
-            <Pill className="h-5 w-5" aria-hidden="true" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-xl font-semibold text-slate-900">MedQuote</h1>
-              {isDemo ? (
-                <span className="rounded border border-amber-300 bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-800">
-                  Mode Demo
-                </span>
-              ) : null}
-            </div>
-            <p className="mt-0.5 text-sm text-slate-500">
+    <main
+      className="relative flex min-h-screen items-center bg-cover bg-center p-4 sm:p-8"
+      style={{ backgroundImage: "url('/login-background.jpg')" }}
+    >
+      <div aria-hidden="true" className="absolute inset-0 bg-slate-950/35" />
+      <div className="relative mx-auto flex w-full max-w-[1440px] justify-center">
+        <section className="w-full max-w-[400px] rounded-lg border border-border bg-white p-6 sm:p-8">
+          <div className="mb-7">
+            <h1 className="text-xl font-semibold text-slate-900">MedQuote</h1>
+            <p className="mt-1 text-sm text-slate-500">
               Masuk untuk mengelola penawaran harga.
             </p>
           </div>
-        </div>
 
-        <form className="space-y-4" onSubmit={submit}>
-          <Field label="Email" htmlFor="login-email">
-            <Input
-              id="login-email"
-              type="email"
-              autoComplete="email"
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              aria-invalid={Boolean(error)}
-            />
-          </Field>
-          <Field label="Password" htmlFor="login-password">
-            <Input
-              id="login-password"
-              type="password"
-              autoComplete="current-password"
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              aria-invalid={Boolean(error)}
-            />
-          </Field>
+          <form className="space-y-4" onSubmit={submit}>
+            <Field label="Email" htmlFor="login-email">
+              <Input
+                id="login-email"
+                placeholder="nama@email.com"
+                type="email"
+                autoComplete="email"
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                aria-invalid={Boolean(error)}
+              />
+            </Field>
+            <Field label="Password" htmlFor="login-password">
+              <div className="relative">
+                <Input
+                  id="login-password"
+                  placeholder="Masukkan password"
+                  className="pr-11"
+                  type={showPassword ? "text" : "password"}
+                  autoComplete="current-password"
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
+                  aria-invalid={Boolean(error)}
+                />
+                <button
+                  type="button"
+                  className="absolute right-1 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full text-slate-400 transition-colors hover:bg-slate-50 hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20"
+                  aria-label={showPassword ? "Sembunyikan password" : "Tampilkan password"}
+                  aria-pressed={showPassword}
+                  onClick={() => setShowPassword((visible) => !visible)}
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-4 w-4" aria-hidden="true" />
+                  ) : (
+                    <Eye className="h-4 w-4" aria-hidden="true" />
+                  )}
+                </button>
+              </div>
+            </Field>
 
-          {error ? (
-            <div
-              className="rounded-md border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-700"
-              role="alert"
-            >
-              {error}
-            </div>
-          ) : null}
+            {error ? (
+              <div
+                className="rounded-md border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-700"
+                role="alert"
+              >
+                {error}
+              </div>
+            ) : null}
 
-          <Button className="w-full" type="submit" loading={loading}>
-            <LockKeyhole className="h-4 w-4" />
-            {loading ? "Memproses..." : "Masuk"}
-          </Button>
-        </form>
-
-        {isDemo ? (
-          <p className="mt-5 border-t border-slate-100 pt-4 text-center text-xs leading-5 text-slate-500">
-            Data demo tersimpan di perangkat ini agar seluruh alur dapat dicoba
-            tanpa konfigurasi tambahan.
-          </p>
-        ) : null}
-      </section>
+            <Button className="w-full" type="submit" loading={loading}>
+              {loading ? "Memproses..." : "Masuk"}
+            </Button>
+          </form>
+        </section>
+      </div>
     </main>
   );
 }

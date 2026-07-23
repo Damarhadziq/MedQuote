@@ -52,6 +52,12 @@ export type Offer = {
 
 export type AppUser = { id: string; email: string; name?: string };
 
+export type FixedInformation = {
+  contact_person: string;
+  contact_number: string;
+  notes: string;
+};
+
 export type ProductFormValue = {
   name: string;
   composition: string;

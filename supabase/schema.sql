@@ -5,7 +5,7 @@ create table if not exists public.products (
   user_id uuid not null references auth.users(id) on delete cascade,
   name text not null check (length(trim(name)) > 0),
   composition text not null check (length(trim(composition)) > 0),
-  package_type text not null check (length(trim(package_type)) > 0),
+  package_type text not null check (package_type in ('Box', 'Botol', 'Tube')),
   package_detail text not null check (length(trim(package_detail)) > 0),
   hna numeric(15, 2) not null check (hna > 0),
   tax_percentage numeric(5, 2) not null default 11
@@ -26,7 +26,7 @@ create table if not exists public.offers (
   valid_until date,
   general_discount numeric(5, 2) not null default 0
     check (general_discount >= 0 and general_discount <= 100),
-  discount_mode text not null default 'general'
+  discount_mode text not null default 'per_product'
     check (discount_mode in ('general', 'per_product')),
   notes text,
   payment_terms text,

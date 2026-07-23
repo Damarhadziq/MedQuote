@@ -34,16 +34,18 @@ test("server-renders MedQuote without starter metadata", async () => {
   assert.doesNotMatch(html, /Your site is taking shape|codex-preview/i);
 });
 
-test("keeps Supabase demo fallback and product flows in source", async () => {
+test("keeps Supabase fallback and current product flows in source", async () => {
   const [app, packageJson, envExample] = await Promise.all([
     readFile(new URL("../components/medquote-app.tsx", import.meta.url), "utf8"),
     readFile(new URL("../package.json", import.meta.url), "utf8"),
     readFile(new URL("../.env.example", import.meta.url), "utf8"),
   ]);
 
-  assert.match(app, /Mode Demo/);
-  assert.match(app, /Tambah Penawaran/);
-  assert.match(app, /Etalase Produk/);
+  assert.doesNotMatch(app, /Mode Demo/);
+  assert.match(app, /Tambah penawaran/);
+  assert.match(app, /Etalase produk/);
+  assert.match(app, /productsPerPage = 10/);
+  assert.match(app, /getSmallestUnitPrice/);
   assert.match(packageJson, /"@supabase\/supabase-js"/);
   assert.match(packageJson, /"jspdf"/);
   assert.doesNotMatch(packageJson, /react-loading-skeleton/);

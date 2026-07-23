@@ -1,5 +1,6 @@
 "use client";
 
+import * as React from "react";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import * as TooltipPrimitive from "@radix-ui/react-tooltip";
 import { X } from "lucide-react";
@@ -7,23 +8,53 @@ import { cn } from "@/lib/utils";
 
 export const Dialog = DialogPrimitive.Root;
 
+function useInitialFieldFocus() {
+  const contentRef = React.useRef<HTMLDivElement>(null);
+
+  const onOpenAutoFocus = React.useCallback((event: Event) => {
+    event.preventDefault();
+    window.requestAnimationFrame(() => {
+      const firstField = contentRef.current?.querySelector<HTMLElement>(
+        '[data-dialog-autofocus], input:not([disabled]):not([type="hidden"]), textarea:not([disabled]), button[role="combobox"]',
+      );
+      firstField?.focus({ preventScroll: true });
+    });
+  }, []);
+
+  return { contentRef, onOpenAutoFocus };
+}
+
 export function ModalContent({
   children,
   className,
   title,
   description,
+  variant = "default",
 }: {
   children: React.ReactNode;
   className?: string;
   title: string;
   description?: string;
+  variant?: "default" | "confirm";
 }) {
+  const { contentRef, onOpenAutoFocus } = useInitialFieldFocus();
+
   return (
     <DialogPrimitive.Portal>
-      <DialogPrimitive.Overlay className="fixed inset-0 z-40 bg-slate-950/35" />
-      <DialogPrimitive.Content
+      <DialogPrimitive.Overlay
         className={cn(
-          "fixed left-1/2 top-1/2 z-50 max-h-[calc(100vh-32px)] w-[calc(100%-32px)] max-w-[560px] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-lg border border-slate-200 bg-white shadow-xl focus:outline-none",
+          "mq-overlay fixed inset-0",
+          variant === "confirm"
+            ? "z-[60] bg-slate-950/55"
+            : "z-40 bg-slate-950/35",
+        )}
+      />
+      <DialogPrimitive.Content
+        ref={contentRef}
+        onOpenAutoFocus={onOpenAutoFocus}
+        className={cn(
+          "mq-modal fixed left-1/2 top-1/2 max-h-[calc(100vh-32px)] w-[calc(100%-32px)] max-w-[560px] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-lg border border-border bg-white focus:outline-none",
+          variant === "confirm" ? "z-[70]" : "z-50",
           className,
         )}
       >
@@ -45,16 +76,20 @@ export function DrawerContent({
   description?: string;
   className?: string;
 }) {
+  const { contentRef, onOpenAutoFocus } = useInitialFieldFocus();
+
   return (
     <DialogPrimitive.Portal>
-      <DialogPrimitive.Overlay className="fixed inset-0 z-40 bg-slate-950/35" />
+      <DialogPrimitive.Overlay className="mq-overlay fixed inset-0 z-40 bg-slate-950/35" />
       <DialogPrimitive.Content
+        ref={contentRef}
+        onOpenAutoFocus={onOpenAutoFocus}
         className={cn(
-          "fixed inset-y-0 right-0 z-50 flex w-full flex-col border-l border-slate-200 bg-white shadow-xl focus:outline-none sm:max-w-[580px]",
+          "mq-drawer fixed inset-y-0 right-0 z-50 flex w-screen flex-col border-l border-border bg-white focus:outline-none sm:max-w-[580px]",
           className,
         )}
       >
-        <OverlayHeader title={title} description={description} />
+        <OverlayHeader title={title} description={description} variant="drawer" />
         {children}
       </DialogPrimitive.Content>
     </DialogPrimitive.Portal>
@@ -64,14 +99,26 @@ export function DrawerContent({
 function OverlayHeader({
   title,
   description,
+  variant = "modal",
 }: {
   title: string;
   description?: string;
+  variant?: "modal" | "drawer";
 }) {
   return (
-    <div className="flex shrink-0 items-start justify-between gap-4 border-b border-slate-200 px-4 py-4 sm:px-6">
+    <div
+      className={cn(
+        "flex shrink-0 justify-between gap-4 px-4 sm:px-6",
+        variant === "drawer" ? "items-center py-5" : "items-start py-4",
+      )}
+    >
       <div>
-        <DialogPrimitive.Title className="text-lg font-semibold text-slate-900">
+        <DialogPrimitive.Title
+          className={cn(
+            "font-semibold text-slate-900",
+            variant === "drawer" ? "text-xl leading-7" : "text-lg",
+          )}
+        >
           {title}
         </DialogPrimitive.Title>
         {description ? (
@@ -82,7 +129,7 @@ function OverlayHeader({
       </div>
       <DialogPrimitive.Close
         aria-label="Tutup"
-        className="rounded-md p-2 text-slate-500 transition-colors hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-teal-700"
+        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/20"
       >
         <X className="h-5 w-5" />
       </DialogPrimitive.Close>
@@ -104,7 +151,7 @@ export function Tooltip({
         <TooltipPrimitive.Portal>
           <TooltipPrimitive.Content
             sideOffset={6}
-            className="z-[70] rounded-md bg-slate-900 px-2 py-1 text-xs text-white shadow-md"
+            className="z-[70] rounded-md bg-slate-900 px-2 py-1 text-xs text-white"
           >
             {label}
             <TooltipPrimitive.Arrow className="fill-slate-900" />

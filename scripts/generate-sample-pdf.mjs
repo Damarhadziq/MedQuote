@@ -1,191 +1,127 @@
-﻿import fs from "node:fs";
+import fs from "node:fs";
 import path from "node:path";
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 
 const outputDir = path.resolve("output/pdf");
 fs.mkdirSync(outputDir, { recursive: true });
-const outputPath = path.join(
-  outputDir,
-  "Penawaran-dr-Budi-Santoso-2026-07-23.pdf",
-);
+const outputPath = path.join(outputDir, "Penawaran-dr-Budi-Santoso-2026-07-23.pdf");
 
-const doc = new jsPDF({ unit: "mm", format: "a4" });
+const doc = new jsPDF({ unit: "mm", format: "a4", orientation: "landscape" });
 const pageWidth = doc.internal.pageSize.getWidth();
-const margin = 14;
-const money = (value) => `Rp${Math.round(value).toLocaleString("id-ID")}`;
+const pageHeight = doc.internal.pageSize.getHeight();
+const margin = 10;
+const blue = [0, 34, 255];
+const money = (value) => `Rp ${Math.round(value).toLocaleString("id-ID")}`;
 
-doc.setFont("helvetica", "bold");
-doc.setTextColor(15, 74, 70);
-doc.setFontSize(16);
-doc.text("PENAWARAN HARGA", margin, 19);
-doc.setFont("helvetica", "normal");
-doc.setTextColor(51, 65, 85);
-doc.setFontSize(8.5);
-doc.text("Nomor: MQ-2026-0021", pageWidth - margin, 16, { align: "right" });
-doc.text("Tanggal: 23 Juli 2026", pageWidth - margin, 21, { align: "right" });
-doc.setDrawColor(15, 118, 110);
-doc.line(margin, 25, pageWidth - margin, 25);
-
-doc.setFontSize(9);
-doc.setTextColor(30, 41, 59);
-doc.text("Kepada Yth.", margin, 32);
-doc.setFont("helvetica", "bold");
-doc.text("dr. Budi Santoso", margin, 37);
-doc.setFont("helvetica", "normal");
-doc.text("Klinik Sehat Sentosa", margin, 42);
-doc.text("CP: Siska - 0812 3456 7890", margin, 47);
-doc.text(
-  "Dengan hormat, berikut kami sampaikan penawaran harga produk untuk menjadi bahan pertimbangan.",
-  margin,
-  56,
-);
-
-const names = [
-  "Amoxicillin 500 mg",
-  "Omeprazole 20 mg",
-  "Paracetamol Sirup",
-  "Diclofenac Gel 1%",
-  "Cetirizine 10 mg",
-  "Amlodipine 10 mg",
-  "Metformin 500 mg",
-  "Salbutamol 2 mg",
+const products = [
+  ["Amlodipine 10 mg", "Amlodipine 10 mg / tablet", "Box · 30's", 30, 31475, 30],
+  ["Amlodipine 5 mg", "Amlodipine 5 mg / tablet", "Box · 30's", 30, 17850, 30],
+  ["Astaxanthin Natural MPL 4 mg", "Haematococcus pluvialis extract 200 mg (Astaxanthin 4 mg) / kapsul", "Box · 18's", 18, 107075, 25],
+  ["Azithromycin Dihydrate 500 mg", "Azithromycin 500 mg / kaplet", "Box · 20's", 20, 90000, 15],
+  ["Azovir Cream", "Acyclovir 5% / tube", "Tube · 5 gr", null, 19600, 10],
+  ["Bidicef 500 mg", "Cefadroxil 500 mg / kapsul", "Box · 60's", 60, 270375, 50],
+  ["Bidicef DS", "Cefadroxil 125 mg / 5 ml", "Botol · 60 ml", null, 33990, 50],
+  ["Biocort Cream 10 g", "Gentamicin 0.1%, Betamethasone 0.1% / 10 gr / tube", "Tube · 10 g", null, 33775, 10],
+  ["Cefadroxil 500 mg", "Cefadroxil 500 mg / kapsul", "Box · 100's", 100, 100000, 20],
+  ["Cefixime 100 mg", "Cefixime Trihydrate 100 mg / kapsul", "Box · 50's", 50, 110000, 60],
+  ["Citicoline MPL 500 mg", "Citicoline 500 mg / tablet", "Box · 30's", 30, 254775, 35],
+  ["Diclofenac Potassium 50 mg", "Kalium Diklofenak 50 mg / tablet", "Box · 50's", 50, 46200, 15],
+  ["Domperidone 10 mg", "Domperidone 10 mg / tablet", "Box · 100's", 100, 39900, 15],
+  ["Echinacea MPL 500 mg", "Echinacea purpurea herba ekstrak 500 mg / kaplet", "Box · 30's", 30, 80075, 25],
+  ["Eperisone 50 mg", "Eperisone HCl 50 mg / tablet", "Box · 100's", 100, 173775, 35],
+  ["Fenofibrate 200 mg", "Fenofibrate micronized 200 mg / kapsul", "Box · 40's", 40, 201200, 35],
+  ["Glucosamine MPL 250 mg", "Glucosamine 250 mg / tablet", "Box · 100's", 100, 112500, 35],
+  ["Glucosamine MPL 500 mg", "Glucosamine 500 mg / kaplet", "Box · 100's", 100, 178000, 35],
+  ["Glucosamine MPL Plus", "Glucosamine 500 mg dan Chondroitin 250 mg / kaplet", "Box · 30's", 30, 126300, 35],
+  ["Linco MPL 500 mg", "Lincomycin 500 mg / kapsul", "Box · 100's", 100, 373900, 40],
+  ["Methylprednisolone 4 mg", "Methylprednisolone 4 mg / tablet", "Box · 100's", 100, 51150, 15],
+  ["Mucotussan Sirup 100 ml", "0,7 gr ekstrak kering Hedera Helix Folium / 100 ml", "Botol · 100 ml", null, 44000, 10],
 ];
 
-const rows = Array.from({ length: 24 }, (_, index) => {
-  const hna = 18750 + index * 3150;
+const rows = products.map(([name, composition, packaging, units, hna, discount], index) => {
   const withTax = hna * 1.11;
-  const discount = index % 3 === 0 ? 7.5 : 5;
   const finalPrice = withTax * (1 - discount / 100);
-  const quantity = (index % 4) + 1;
+  const quantity = (index % 3) + 1;
   return [
     index + 1,
-    names[index % names.length],
-    index % 2 === 0
-      ? "Tiap tablet mengandung zat aktif dengan uraian komposisi panjang untuk menguji pembungkusan teks pada tabel."
-      : "Komposisi sesuai informasi produk.",
-    index % 3 === 0 ? "Box - 10 strip x 10 tablet" : "Botol - 60 mL",
+    name,
+    composition,
+    packaging,
     quantity,
     money(hna),
     money(withTax),
     `${discount}%`,
     money(finalPrice),
+    money(units ? withTax / units : withTax),
     money(finalPrice * quantity),
   ];
 });
 
+doc.setFont("helvetica", "bold");
+doc.setTextColor(...blue);
+doc.setFontSize(16);
+doc.text("Penawaran harga produk", margin, 15);
+doc.setDrawColor(...blue);
+doc.setLineWidth(0.45);
+doc.line(margin, 20, pageWidth - margin, 20);
+doc.setFont("helvetica", "normal");
+doc.setTextColor(23, 32, 51);
+doc.setFontSize(9);
+doc.text("Ditujukan kepada", margin, 28);
+doc.setFont("helvetica", "bold");
+doc.setFontSize(10);
+doc.text("dr. Budi Santoso", margin, 34);
+doc.setFont("helvetica", "normal");
+doc.setFontSize(9);
+doc.setTextColor(92, 105, 128);
+doc.text("Dengan hormat, berikut kami sampaikan penawaran harga produk untuk menjadi bahan pertimbangan.", margin, 42);
+
 autoTable(doc, {
-  startY: 63,
-  margin: { left: margin, right: margin, bottom: 17 },
-    tableWidth: 161,
-    rowPageBreak: "avoid",
-  head: [
-    [
-      "No.",
-      "Nama Produk",
-      "Komposisi",
-      "Kemasan",
-      "Qty",
-      "HNA",
-      "HNA + PPN",
-      "Diskon",
-      "Harga Final",
-      "Subtotal",
-    ],
-  ],
+  startY: 48,
+  margin: { left: margin, right: margin, bottom: 14 },
+  tableWidth: pageWidth - margin * 2,
+  rowPageBreak: "avoid",
+  showHead: "everyPage",
+  head: [["No.", "Nama produk", "Komposisi", "Kemasan", "Qty", "HNA", "HNA + PPN", "Diskon", "Harga final", "Harga satuan terkecil", "Subtotal"]],
   body: rows,
-  styles: {
-    font: "helvetica",
-    fontSize: 6.2,
-    cellPadding: 1.4,
-    overflow: "linebreak",
-    valign: "top",
-    textColor: [30, 41, 59],
-    lineColor: [226, 232, 240],
-    lineWidth: 0.1,
-  },
-  headStyles: {
-    fillColor: [15, 74, 70],
-    textColor: [255, 255, 255],
-    fontStyle: "bold",
-    halign: "center",
-  },
-  alternateRowStyles: { fillColor: [248, 250, 252] },
+  styles: { font: "helvetica", fontSize: 7.1, cellPadding: 1.7, overflow: "linebreak", valign: "middle", textColor: [23, 32, 51], lineColor: [236, 236, 236], lineWidth: 0.12, minCellHeight: 7 },
+  headStyles: { fillColor: blue, textColor: [255, 255, 255], fontStyle: "bold", halign: "center", valign: "middle", minCellHeight: 9 },
+  bodyStyles: { fillColor: [255, 255, 255] },
+  alternateRowStyles: { fillColor: [246, 247, 255] },
   columnStyles: {
-    0: { cellWidth: 7, halign: "center" },
-    1: { cellWidth: 20 },
-    2: { cellWidth: 25 },
-    3: { cellWidth: 16 },
-    4: { cellWidth: 8, halign: "center" },
-    5: { cellWidth: 17, halign: "right" },
-    6: { cellWidth: 19, halign: "right" },
-    7: { cellWidth: 10, halign: "center" },
-    8: { cellWidth: 19, halign: "right" },
-    9: { cellWidth: 20, halign: "right" },
-  },
-  didDrawPage: () => {
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(7.5);
-    doc.setTextColor(100, 116, 139);
-    doc.text(
-      `Halaman ${doc.getNumberOfPages()}`,
-      pageWidth - margin,
-      doc.internal.pageSize.getHeight() - 8,
-      { align: "right" },
-    );
+    0: { cellWidth: 7, halign: "center" }, 1: { cellWidth: 34 }, 2: { cellWidth: 55 },
+    3: { cellWidth: 22 }, 4: { cellWidth: 9, halign: "center" }, 5: { cellWidth: 25, halign: "right" },
+    6: { cellWidth: 27, halign: "right" }, 7: { cellWidth: 14, halign: "center" },
+    8: { cellWidth: 27, halign: "right" }, 9: { cellWidth: 27, halign: "right" }, 10: { cellWidth: 30, halign: "right" },
   },
 });
 
-let y = doc.lastAutoTable.finalY + 7;
-if (y > 250) {
-  doc.addPage();
-  y = 18;
+let contentY = doc.lastAutoTable.finalY + 7;
+if (contentY + 26 > pageHeight - 14) {
+  doc.addPage("a4", "landscape");
+  contentY = 16;
 }
-doc.setFillColor(240, 253, 250);
-doc.roundedRect(pageWidth - margin - 68, y, 68, 12, 1.5, 1.5, "F");
 doc.setFont("helvetica", "bold");
-doc.setTextColor(15, 74, 70);
 doc.setFontSize(9);
-doc.text("TOTAL PENAWARAN", pageWidth - margin - 64, y + 5);
-doc.text("Rp 8.724.350", pageWidth - margin - 4, y + 5, { align: "right" });
-y += 20;
+doc.setTextColor(23, 32, 51);
+doc.text("Catatan", margin, contentY);
+doc.setFont("helvetica", "normal");
+doc.setTextColor(92, 105, 128);
+[
+  "Harga tidak mengikat, sewaktu-waktu dapat berubah.",
+  "CP: Rosi (08984000823)",
+].forEach((line, index) => doc.text(line, margin, contentY + 6 + index * 5));
+doc.setTextColor(23, 32, 51);
+doc.text("Demikian penawaran ini kami sampaikan. Terima kasih atas perhatian dan kerja sama yang baik.", margin, contentY + 24);
 
-const notes = [
-  ["Catatan", "Harga sudah termasuk PPN 11%."],
-  [
-    "Ketentuan pembayaran",
-    "Pembayaran dilakukan paling lambat 30 hari kalender setelah barang diterima dalam kondisi baik.",
-  ],
-  [
-    "Informasi pengiriman",
-    "Pengiriman dilakukan dalam 2-3 hari kerja dan disesuaikan dengan ketersediaan stok.",
-  ],
-  ["Masa berlaku", "Penawaran berlaku sampai 31 Agustus 2026."],
-];
-
-for (const [label, value] of notes) {
-  doc.setFont("helvetica", "bold");
-  doc.setTextColor(30, 41, 59);
-  doc.setFontSize(8.5);
-  doc.text(`${label}:`, margin, y);
-  y += 4.5;
-  doc.setFont("helvetica", "normal");
-  doc.setTextColor(71, 85, 105);
-  const lines = doc.splitTextToSize(value, pageWidth - margin * 2);
-  doc.text(lines, margin, y);
-  y += lines.length * 4 + 3;
+const pageCount = doc.getNumberOfPages();
+for (let page = 1; page <= pageCount; page += 1) {
+  doc.setPage(page);
+  doc.setFontSize(7.5);
+  doc.setTextColor(92, 105, 128);
+  doc.text(`Halaman ${page} dari ${pageCount}`, pageWidth - margin, pageHeight - 6, { align: "right" });
 }
-
-doc.setTextColor(30, 41, 59);
-doc.text(
-  "Demikian penawaran ini kami sampaikan. Terima kasih atas perhatian dan kerja sama yang baik.",
-  margin,
-  y + 4,
-);
 
 fs.writeFileSync(outputPath, Buffer.from(doc.output("arraybuffer")));
 console.log(outputPath);
-
-
-
-
