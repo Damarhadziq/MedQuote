@@ -1,0 +1,128 @@
+import type { Offer, Product } from "./types";
+
+const now = new Date().toISOString();
+
+export const demoProducts: Product[] = [
+  {
+    id: "prod-amox",
+    user_id: "demo-user",
+    name: "Amoxicillin 500 mg",
+    composition:
+      "Tiap kapsul mengandung Amoxicillin trihydrate setara Amoxicillin 500 mg",
+    package_type: "Box",
+    package_detail: "10 strip × 10 kapsul",
+    hna: 86500,
+    tax_percentage: 11,
+    created_at: now,
+    updated_at: now,
+  },
+  {
+    id: "prod-omep",
+    user_id: "demo-user",
+    name: "Omeprazole 20 mg",
+    composition: "Tiap kapsul mengandung Omeprazole 20 mg",
+    package_type: "Box",
+    package_detail: "3 strip × 10 kapsul",
+    hna: 42500,
+    tax_percentage: 11,
+    created_at: now,
+    updated_at: now,
+  },
+  {
+    id: "prod-parac",
+    user_id: "demo-user",
+    name: "Paracetamol Sirup",
+    composition: "Tiap 5 mL mengandung Paracetamol 120 mg",
+    package_type: "Botol",
+    package_detail: "60 mL",
+    hna: 18750,
+    tax_percentage: 11,
+    created_at: now,
+    updated_at: now,
+  },
+  {
+    id: "prod-diclo",
+    user_id: "demo-user",
+    name: "Diclofenac Gel 1%",
+    composition: "Diclofenac sodium 1% dalam basis gel",
+    package_type: "Tube",
+    package_detail: "20 gram",
+    hna: 31200,
+    tax_percentage: 11,
+    created_at: now,
+    updated_at: now,
+  },
+  {
+    id: "prod-cetir",
+    user_id: "demo-user",
+    name: "Cetirizine 10 mg",
+    composition:
+      "Tiap tablet salut selaput mengandung Cetirizine HCl 10 mg",
+    package_type: "Strip",
+    package_detail: "10 tablet",
+    hna: 9750,
+    tax_percentage: 11,
+    created_at: now,
+    updated_at: now,
+  },
+];
+
+const amoxTax = 86500 * 1.11;
+const omepTax = 42500 * 1.11;
+
+export const demoOffers: Offer[] = [
+  {
+    id: "offer-demo-1",
+    user_id: "demo-user",
+    offer_number: `MQ-${new Date().getFullYear()}-0001`,
+    recipient_name: "dr. Budi Santoso",
+    institution: "Klinik Sehat Sentosa",
+    contact_person: "Siska",
+    contact_number: "0812 3456 7890",
+    offer_date: new Date().toISOString().slice(0, 10),
+    valid_until: "",
+    general_discount: 5,
+    discount_mode: "general",
+    notes: "Harga sudah termasuk PPN.",
+    payment_terms: "Pembayaran 30 hari setelah barang diterima.",
+    shipping_information: "Pengiriman 2–3 hari kerja.",
+    additional_notes: null,
+    total: Math.round(amoxTax * 0.95 * 2 + omepTax * 0.95 * 3),
+    status: "Tersimpan",
+    created_at: now,
+    updated_at: now,
+    offer_items: [
+      {
+        id: "item-demo-1",
+        offer_id: "offer-demo-1",
+        product_id: "prod-amox",
+        product_name_snapshot: "Amoxicillin 500 mg",
+        composition_snapshot:
+          "Tiap kapsul mengandung Amoxicillin trihydrate setara Amoxicillin 500 mg",
+        package_snapshot: "Box · 10 strip × 10 kapsul",
+        quantity: 2,
+        hna_snapshot: 86500,
+        tax_percentage: 11,
+        price_with_tax: amoxTax,
+        discount_percentage: 5,
+        final_unit_price: amoxTax * 0.95,
+        subtotal: amoxTax * 0.95 * 2,
+      },
+      {
+        id: "item-demo-2",
+        offer_id: "offer-demo-1",
+        product_id: "prod-omep",
+        product_name_snapshot: "Omeprazole 20 mg",
+        composition_snapshot: "Tiap kapsul mengandung Omeprazole 20 mg",
+        package_snapshot: "Box · 3 strip × 10 kapsul",
+        quantity: 3,
+        hna_snapshot: 42500,
+        tax_percentage: 11,
+        price_with_tax: omepTax,
+        discount_percentage: 5,
+        final_unit_price: omepTax * 0.95,
+        subtotal: omepTax * 0.95 * 3,
+      },
+    ],
+  },
+];
