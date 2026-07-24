@@ -2,12 +2,13 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Search } from "lucide-react";
-import type { FixedInformation, OfferDraft, Product } from "@/lib/types";
+import type { FixedInformation, OfferDraft, Product, MedicationTemplate } from "@/lib/types";
 import { formatRupiah, getSmallestUnitPrice, todayIso } from "@/lib/utils";
 import { Button } from "./ui/button";
 import { Checkbox } from "./ui/checkbox";
 import { DatePicker } from "./ui/date-picker";
 import { Field, Input } from "./ui/field";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import { Dialog, DrawerContent, ModalContent } from "./ui/overlays";
 import { PackageChip } from "./package-chip";
 
@@ -31,12 +32,14 @@ export function OfferDrawer({
   open,
   products,
   fixedInfo,
+  templates = [],
   onOpenChange,
   onSave,
 }: {
   open: boolean;
   products: Product[];
   fixedInfo: FixedInformation;
+  templates?: MedicationTemplate[];
   onOpenChange: (open: boolean) => void;
   onSave: (draft: OfferDraft, download: boolean) => Promise<void>;
 }) {
@@ -130,6 +133,20 @@ export function OfferDrawer({
     });
   };
 
+  const applyTemplate = (templateId: string) => {
+    const template = templates.find((t) => t.id === templateId);
+    if (!template) return;
+    setDraft((current) => {
+      const next = { ...current.selected };
+      template.items.forEach((productId) => {
+        if (!next[productId]) {
+          next[productId] = { quantity: 1, discount: 0 };
+        }
+      });
+      return { ...current, selected: next };
+    });
+  };
+
   const updateSelection = (
     productId: string,
     key: "quantity" | "discount",
@@ -182,7 +199,7 @@ export function OfferDrawer({
             <div className="space-y-6 px-4 py-5 sm:px-6">
               <section className="space-y-4">
                 <SectionTitle number="1" title="Informasi penerima" />
-                <div className="grid gap-4 sm:grid-cols-2">
+                <div className="grid items-start gap-4 sm:grid-cols-2">
                   <Field
                     label="Ditujukan kepada"
                     htmlFor="offer-recipient"
@@ -214,15 +231,33 @@ export function OfferDrawer({
 
               <section className="space-y-4">
                 <SectionTitle number="2" title="Pilih produk" />
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                  <Input
-                    aria-label="Cari produk untuk penawaran"
-                    className="pl-9"
-                    placeholder="Cari produk berdasarkan nama atau komposisi"
-                    value={query}
-                    onChange={(event) => setQuery(event.target.value)}
-                  />
+                <div className="flex gap-3">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                    <Input
+                      aria-label="Cari produk untuk penawaran"
+                      className="pl-9"
+                      placeholder="Cari produk berdasarkan nama atau komposisi"
+                      value={query}
+                      onChange={(event) => setQuery(event.target.value)}
+                    />
+                  </div>
+                  {templates.length > 0 && (
+                    <div className="w-[200px] shrink-0">
+                      <Select value="" onValueChange={applyTemplate}>
+                        <SelectTrigger aria-label="Pilih template">
+                          <SelectValue placeholder="Pilih template..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {templates.map((t) => (
+                            <SelectItem key={t.id} value={t.id}>
+                              {t.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
                 </div>
                 <div className="mq-scrollbar max-h-64 divide-y divide-[#f5f5f5] overflow-y-auto rounded-md border border-border">
                   {filteredProducts.length ? (

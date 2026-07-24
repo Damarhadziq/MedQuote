@@ -82,3 +82,9 @@ export type OfferDraft = {
   additional_notes: string;
   selected: Record<string, { quantity: number; discount: number }>;
 };
+
+export type MedicationTemplate = {
+  id: string;
+  name: string;
+  items: string[];
+};

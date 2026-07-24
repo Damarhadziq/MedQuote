@@ -1,4 +1,4 @@
-import type { Offer, Product } from "./types";
+import type { MedicationTemplate, Offer, Product } from "./types";
 
 const now = new Date().toISOString();
 
@@ -318,5 +318,28 @@ export const demoOffers: Offer[] = [
         subtotal: azithromycinTax * 0.95,
       },
     ],
+  },
+];
+
+export const demoTemplates: MedicationTemplate[] = [
+  {
+    id: "tmpl-demo-1",
+    name: "Dokter Gigi Umum",
+    items: ["prod-013", "prod-026", "prod-025", "prod-016"],
+  },
+  {
+    id: "tmpl-demo-2",
+    name: "Dokter Umum – ISPA",
+    items: ["prod-004", "prod-017", "prod-031", "prod-029"],
+  },
+  {
+    id: "tmpl-demo-3",
+    name: "Dokter Kulit",
+    items: ["prod-005", "prod-008", "prod-009", "prod-015", "prod-038"],
+  },
+  {
+    id: "tmpl-demo-4",
+    name: "Saraf & Nyeri",
+    items: ["prod-028", "prod-019", "prod-016", "prod-014"],
   },
 ];

@@ -3,7 +3,7 @@
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import type { Offer } from "./types";
-import { getSnapshotSmallestUnitPrice, safeFilePart } from "./utils";
+import { formatDate, getSnapshotSmallestUnitPrice, safeFilePart } from "./utils";
 
 const PRIMARY_BLUE: [number, number, number] = [0, 34, 255];
 const TEXT_COLOR: [number, number, number] = [23, 32, 51];
@@ -21,7 +21,7 @@ export function createOfferPdf(offer: Offer, shouldSave = true) {
   doc.setFont("helvetica", "bold");
   doc.setTextColor(...PRIMARY_BLUE);
   doc.setFontSize(16);
-  doc.text("Penawaran harga produk", margin, 15);
+  doc.text(`Penawaran Harga Produk per ${formatDate(offer.offer_date)}`, margin, 15);
 
   doc.setDrawColor(...PRIMARY_BLUE);
   doc.setLineWidth(0.45);
@@ -56,13 +56,11 @@ export function createOfferPdf(offer: Offer, shouldSave = true) {
         "Nama produk",
         "Komposisi",
         "Kemasan",
-        "Qty",
         "HNA",
         "HNA + PPN",
         "Diskon",
         "Harga final",
         "Harga satuan terkecil",
-        "Subtotal",
       ],
     ],
     body: offer.offer_items.map((item, index) => {
@@ -75,13 +73,11 @@ export function createOfferPdf(offer: Offer, shouldSave = true) {
         item.product_name_snapshot,
         item.composition_snapshot,
         item.package_snapshot,
-        item.quantity,
         money(item.hna_snapshot),
         money(item.price_with_tax),
         `${item.discount_percentage}%`,
         money(item.final_unit_price),
         money(smallestUnitPrice),
-        money(item.subtotal),
       ];
     }),
     styles: {
@@ -106,17 +102,15 @@ export function createOfferPdf(offer: Offer, shouldSave = true) {
     bodyStyles: { fillColor: [255, 255, 255] },
     alternateRowStyles: { fillColor: ZEBRA_COLOR },
     columnStyles: {
-      0: { cellWidth: 7, halign: "center" },
-      1: { cellWidth: 34 },
-      2: { cellWidth: 55 },
+      0: { cellWidth: 10, halign: "center" },
+      1: { cellWidth: 52 },
+      2: { cellWidth: 73 },
       3: { cellWidth: 22 },
-      4: { cellWidth: 9, halign: "center" },
-      5: { cellWidth: 25, halign: "right" },
-      6: { cellWidth: 27, halign: "right" },
-      7: { cellWidth: 14, halign: "center" },
+      4: { cellWidth: 25, halign: "right" },
+      5: { cellWidth: 27, halign: "right" },
+      6: { cellWidth: 14, halign: "center" },
+      7: { cellWidth: 27, halign: "right" },
       8: { cellWidth: 27, halign: "right" },
-      9: { cellWidth: 27, halign: "right" },
-      10: { cellWidth: 30, halign: "right" },
     },
   });
 

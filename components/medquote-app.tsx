@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Boxes, ChevronRight, CircleUserRound, Clock3, Info, LogOut, Menu, Search } from "lucide-react";
+import { Boxes, ChevronRight, CircleUserRound, Clock3, CopyPlus, Info, LogOut, Menu, Search } from "lucide-react";
 import { Toaster, toast } from "sonner";
 import type {
   AppUser,
@@ -11,8 +11,9 @@ import type {
   OfferItem,
   Product,
   ProductFormValue,
+  MedicationTemplate,
 } from "@/lib/types";
-import { demoOffers, demoProducts } from "@/lib/demo-data";
+import { demoOffers, demoProducts, demoTemplates } from "@/lib/demo-data";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 import { createOfferPdf } from "@/lib/pdf";
 import {
@@ -35,13 +36,15 @@ import { Dialog, ModalContent } from "./ui/overlays";
 import { LoginScreen } from "./login-screen";
 import { ProductModal } from "./product-modal";
 import { OfferDrawer } from "./offer-drawer";
-import { HistoryDrawer } from "./history-drawer";
+import { HistoryPage } from "./history-page";
+import { TemplatePage } from "./template-page";
 import { PackageChip } from "./package-chip";
 import { FixedInfoModal } from "./fixed-info-modal";
 
 const PRODUCT_STORE = "medquote-demo-products-v2";
 const OFFER_STORE = "medquote-demo-offers";
 const FIXED_INFO_STORE = "medquote-fixed-information";
+const TEMPLATE_STORE = "medquote-templates";
 const DEFAULT_FIXED_INFO: FixedInformation = {
   contact_person: "Rosi",
   contact_number: "08984000823",
@@ -62,8 +65,9 @@ export function MedQuoteApp() {
   const [productModalOpen, setProductModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [offerOpen, setOfferOpen] = useState(false);
-  const [historyOpen, setHistoryOpen] = useState(false);
   const [infoOpen, setInfoOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<"etalase" | "history" | "template">("etalase");
+  const [templates, setTemplates] = useState<MedicationTemplate[]>([]);
   const [confirmTarget, setConfirmTarget] = useState<
     { type: "product"; item: Product } | { type: "offer"; item: Offer } | null
   >(null);
@@ -104,6 +108,7 @@ export function MedQuoteApp() {
     if (!user) {
       setProducts([]);
       setOffers([]);
+      setTemplates([]);
       setFixedInfo(DEFAULT_FIXED_INFO);
       return;
     }
@@ -112,6 +117,9 @@ export function MedQuoteApp() {
         `${FIXED_INFO_STORE}-${user.id}`,
         DEFAULT_FIXED_INFO,
       ),
+    );
+    setTemplates(
+      readDemo<MedicationTemplate[]>(`${TEMPLATE_STORE}-${user.id}`, demoTemplates),
     );
     void loadData(user);
   }, [user]);
@@ -414,6 +422,25 @@ export function MedQuoteApp() {
     toast.success("PDF penawaran selesai dibuat.");
   };
 
+  const saveTemplate = (template: MedicationTemplate) => {
+    if (!user) return;
+    const isExisting = templates.some((t) => t.id === template.id);
+    const next = isExisting
+      ? templates.map((t) => (t.id === template.id ? template : t))
+      : [template, ...templates];
+    setTemplates(next);
+    writeDemo(`${TEMPLATE_STORE}-${user.id}`, next);
+    toast.success(isExisting ? "Template diperbarui." : "Template ditambahkan.");
+  };
+
+  const deleteTemplate = (template: MedicationTemplate) => {
+    if (!user) return;
+    const next = templates.filter((t) => t.id !== template.id);
+    setTemplates(next);
+    writeDemo(`${TEMPLATE_STORE}-${user.id}`, next);
+    toast.success("Template dihapus.");
+  };
+
   const packageTypes = ["Semua", "Box", "Botol", "Tube"];
 
   const filteredProducts = useMemo(() => {
@@ -456,8 +483,9 @@ export function MedQuoteApp() {
         <aside className="sticky top-0 hidden h-screen w-[248px] shrink-0 flex-col border-r border-border bg-white lg:flex">
           <div className="px-6 py-6"><span className="text-xl font-semibold text-slate-900">MedQuote</span></div>
           <nav className="space-y-1 px-3" aria-label="Navigasi utama">
-            <button type="button" className="flex h-10 w-full items-center gap-3 rounded-md bg-primary-soft px-3 text-left text-sm font-medium text-primary" aria-current="page"><Boxes className="h-4 w-4" aria-hidden="true" />Etalase</button>
-            <button type="button" className="flex h-10 w-full items-center gap-3 rounded-md px-3 text-left text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20" onClick={() => setHistoryOpen(true)}><Clock3 className="h-4 w-4" aria-hidden="true" />Riwayat</button>
+            <button type="button" className={`flex h-10 w-full items-center gap-3 rounded-md px-3 text-left text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 ${activeTab === "etalase" ? "bg-primary-soft text-primary" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"}`} aria-current={activeTab === "etalase" ? "page" : undefined} onClick={() => setActiveTab("etalase")}><Boxes className="h-4 w-4" aria-hidden="true" />Etalase</button>
+            <button type="button" className={`flex h-10 w-full items-center gap-3 rounded-md px-3 text-left text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 ${activeTab === "template" ? "bg-primary-soft text-primary" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"}`} aria-current={activeTab === "template" ? "page" : undefined} onClick={() => setActiveTab("template")}><CopyPlus className="h-4 w-4" aria-hidden="true" />Template Obat</button>
+            <button type="button" className={`flex h-10 w-full items-center gap-3 rounded-md px-3 text-left text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 ${activeTab === "history" ? "bg-primary-soft text-primary" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"}`} aria-current={activeTab === "history" ? "page" : undefined} onClick={() => setActiveTab("history")}><Clock3 className="h-4 w-4" aria-hidden="true" />Riwayat</button>
             <button type="button" className="flex h-10 w-full items-center gap-3 rounded-md px-3 text-left text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20" onClick={() => setInfoOpen(true)}><Info className="h-4 w-4" aria-hidden="true" />Informasi tetap</button>
           </nav>
           <div className="mt-auto p-4">
@@ -470,18 +498,34 @@ export function MedQuoteApp() {
         </aside>
         <div className="min-w-0 flex-1">
           <div className="flex h-14 items-center justify-between border-b border-border px-4 lg:hidden">
-            <div className="flex min-w-0 items-center gap-2 text-sm"><span className="font-semibold text-slate-900">MedQuote</span><ChevronRight className="h-4 w-4 shrink-0 text-slate-300" aria-hidden="true" /><span className="truncate text-slate-500">Etalase</span></div>
+            <div className="flex min-w-0 items-center gap-2 text-sm"><span className="font-semibold text-slate-900">MedQuote</span><ChevronRight className="h-4 w-4 shrink-0 text-slate-300" aria-hidden="true" /><span className="truncate text-slate-500">{activeTab === "etalase" ? "Etalase" : activeTab === "template" ? "Template Obat" : "Riwayat"}</span></div>
             <DropdownMenu>
               <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" aria-label="Buka menu navigasi"><Menu className="h-5 w-5" aria-hidden="true" /></Button></DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="min-w-52">
-                <DropdownMenuItem><Boxes className="mr-2 h-4 w-4" aria-hidden="true" />Etalase</DropdownMenuItem>
-                <DropdownMenuItem onSelect={() => setHistoryOpen(true)}><Clock3 className="mr-2 h-4 w-4" aria-hidden="true" />Riwayat</DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => setActiveTab("etalase")}><Boxes className="mr-2 h-4 w-4" aria-hidden="true" />Etalase</DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => setActiveTab("template")}><CopyPlus className="mr-2 h-4 w-4" aria-hidden="true" />Template Obat</DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => setActiveTab("history")}><Clock3 className="mr-2 h-4 w-4" aria-hidden="true" />Riwayat</DropdownMenuItem>
                 <DropdownMenuItem onSelect={() => setInfoOpen(true)}><Info className="mr-2 h-4 w-4" aria-hidden="true" />Informasi tetap</DropdownMenuItem>
                 <DropdownMenuItem onSelect={() => void handleLogout()}><LogOut className="mr-2 h-4 w-4" aria-hidden="true" />Keluar</DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
           <main className="mx-auto max-w-[1440px] px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+            {activeTab === "history" ? (
+              <HistoryPage
+                offers={offers}
+                onDownload={downloadOffer}
+                onDelete={(offer) => setConfirmTarget({ type: "offer", item: offer })}
+              />
+            ) : activeTab === "template" ? (
+              <TemplatePage
+                templates={templates}
+                products={products}
+                onSave={saveTemplate}
+                onDelete={deleteTemplate}
+              />
+            ) : (
+            <>
             <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <h1 className="text-[28px] font-semibold leading-10 text-slate-900">Etalase produk</h1>
               <div className="grid grid-cols-2 gap-2 sm:flex sm:justify-end">
@@ -654,12 +698,13 @@ export function MedQuoteApp() {
             </div>
           )}
         </section>
+            </>
+            )}
           </main>
         </div>
       </div>
       <ProductModal open={productModalOpen} product={editingProduct} onOpenChange={setProductModalOpen} onSave={saveProduct} />
-      <OfferDrawer open={offerOpen} products={products} fixedInfo={fixedInfo} onOpenChange={setOfferOpen} onSave={saveOffer} />
-      <HistoryDrawer open={historyOpen} offers={offers} onOpenChange={setHistoryOpen} onDownload={downloadOffer} onDelete={(offer) => setConfirmTarget({ type: "offer", item: offer })} />
+      <OfferDrawer open={offerOpen} products={products} fixedInfo={fixedInfo} templates={templates} onOpenChange={setOfferOpen} onSave={saveOffer} />
       <FixedInfoModal
         open={infoOpen}
         value={fixedInfo}
