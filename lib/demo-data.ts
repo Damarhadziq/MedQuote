@@ -321,25 +321,35 @@ export const demoOffers: Offer[] = [
   },
 ];
 
+const DEMO_TEMPLATE_DATE = "2024-01-01T00:00:00.000Z";
+
 export const demoTemplates: MedicationTemplate[] = [
   {
     id: "tmpl-demo-1",
+    user_id: "demo-user",
     name: "Dokter Gigi Umum",
     items: ["prod-013", "prod-026", "prod-025", "prod-016"],
+    created_at: DEMO_TEMPLATE_DATE,
   },
   {
     id: "tmpl-demo-2",
+    user_id: "demo-user",
     name: "Dokter Umum – ISPA",
     items: ["prod-004", "prod-017", "prod-031", "prod-029"],
+    created_at: DEMO_TEMPLATE_DATE,
   },
   {
     id: "tmpl-demo-3",
+    user_id: "demo-user",
     name: "Dokter Kulit",
     items: ["prod-005", "prod-008", "prod-009", "prod-015", "prod-038"],
+    created_at: DEMO_TEMPLATE_DATE,
   },
   {
     id: "tmpl-demo-4",
+    user_id: "demo-user",
     name: "Saraf & Nyeri",
     items: ["prod-028", "prod-019", "prod-016", "prod-014"],
+    created_at: DEMO_TEMPLATE_DATE,
   },
 ];

@@ -118,9 +118,12 @@ export function MedQuoteApp() {
         DEFAULT_FIXED_INFO,
       ),
     );
-    setTemplates(
-      readDemo<MedicationTemplate[]>(`${TEMPLATE_STORE}-${user.id}`, demoTemplates),
-    );
+    // Template demo mode fallback – akan di-override oleh loadData jika Supabase aktif
+    if (!supabase) {
+      setTemplates(
+        readDemo<MedicationTemplate[]>(`${TEMPLATE_STORE}-${user.id}`, demoTemplates),
+      );
+    }
     void loadData(user);
   }, [user]);
 
@@ -134,7 +137,7 @@ export function MedQuoteApp() {
         setOffers(storedOffers);
         return;
       }
-      const [productResult, offerResult] = await Promise.all([
+      const [productResult, offerResult, templateResult] = await Promise.all([
         supabase
           .from("products")
           .select("*")
@@ -145,11 +148,18 @@ export function MedQuoteApp() {
           .select("*, offer_items(*)")
           .eq("user_id", activeUser.id)
           .order("created_at", { ascending: false }),
+        supabase
+          .from("templates")
+          .select("*")
+          .eq("user_id", activeUser.id)
+          .order("created_at", { ascending: false }),
       ]);
       if (productResult.error) throw productResult.error;
       if (offerResult.error) throw offerResult.error;
+      if (templateResult.error) throw templateResult.error;
       setProducts((productResult.data || []) as Product[]);
       setOffers((offerResult.data || []) as unknown as Offer[]);
+      setTemplates((templateResult.data || []) as MedicationTemplate[]);
     } catch (reason) {
       toast.error(messageFrom(reason, "Data belum dapat dimuat."));
     } finally {
@@ -422,23 +432,64 @@ export function MedQuoteApp() {
     toast.success("PDF penawaran selesai dibuat.");
   };
 
-  const saveTemplate = (template: MedicationTemplate) => {
+  const saveTemplate = async (template: MedicationTemplate) => {
     if (!user) return;
     const isExisting = templates.some((t) => t.id === template.id);
-    const next = isExisting
-      ? templates.map((t) => (t.id === template.id ? template : t))
-      : [template, ...templates];
-    setTemplates(next);
-    writeDemo(`${TEMPLATE_STORE}-${user.id}`, next);
-    toast.success(isExisting ? "Template diperbarui." : "Template ditambahkan.");
+    try {
+      if (!supabase) {
+        const next = isExisting
+          ? templates.map((t) => (t.id === template.id ? template : t))
+          : [template, ...templates];
+        setTemplates(next);
+        writeDemo(`${TEMPLATE_STORE}-${user.id}`, next);
+      } else if (isExisting) {
+        const { data, error } = await supabase
+          .from("templates")
+          .update({ name: template.name, items: template.items })
+          .eq("id", template.id)
+          .eq("user_id", user.id)
+          .select()
+          .single();
+        if (error) throw error;
+        setTemplates((list) =>
+          list.map((t) => (t.id === template.id ? (data as MedicationTemplate) : t)),
+        );
+      } else {
+        const { data, error } = await supabase
+          .from("templates")
+          .insert({ name: template.name, items: template.items, user_id: user.id })
+          .select()
+          .single();
+        if (error) throw error;
+        setTemplates((list) => [data as MedicationTemplate, ...list]);
+      }
+      toast.success(isExisting ? "Template diperbarui." : "Template ditambahkan.");
+    } catch (reason) {
+      toast.error(messageFrom(reason, "Template belum dapat disimpan."));
+      throw reason;
+    }
   };
 
-  const deleteTemplate = (template: MedicationTemplate) => {
+  const deleteTemplate = async (template: MedicationTemplate) => {
     if (!user) return;
-    const next = templates.filter((t) => t.id !== template.id);
-    setTemplates(next);
-    writeDemo(`${TEMPLATE_STORE}-${user.id}`, next);
-    toast.success("Template dihapus.");
+    try {
+      if (!supabase) {
+        const next = templates.filter((t) => t.id !== template.id);
+        setTemplates(next);
+        writeDemo(`${TEMPLATE_STORE}-${user.id}`, next);
+      } else {
+        const { error } = await supabase
+          .from("templates")
+          .delete()
+          .eq("id", template.id)
+          .eq("user_id", user.id);
+        if (error) throw error;
+        setTemplates((list) => list.filter((t) => t.id !== template.id));
+      }
+      toast.success("Template dihapus.");
+    } catch (reason) {
+      toast.error(messageFrom(reason, "Template belum dapat dihapus."));
+    }
   };
 
   const packageTypes = ["Semua", "Box", "Botol", "Tube"];

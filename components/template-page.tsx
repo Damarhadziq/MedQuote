@@ -18,8 +18,8 @@ export function TemplatePage({
 }: {
   templates: MedicationTemplate[];
   products: Product[];
-  onSave: (template: MedicationTemplate) => void;
-  onDelete: (template: MedicationTemplate) => void;
+  onSave: (template: MedicationTemplate) => void | Promise<void>;
+  onDelete: (template: MedicationTemplate) => void | Promise<void>;
 }) {
   const [editing, setEditing] = useState<MedicationTemplate | null>(null);
   const [isCreating, setIsCreating] = useState(false);
@@ -30,7 +30,7 @@ export function TemplatePage({
   };
 
   const handleCreate = () => {
-    setEditing({ id: uid(), name: "", items: [] });
+    setEditing({ id: uid(), user_id: "", name: "", items: [], created_at: "" });
     setIsCreating(true);
   };
 

@@ -190,3 +190,40 @@ drop trigger if exists offers_set_updated_at on public.offers;
 create trigger offers_set_updated_at
 before update on public.offers
 for each row execute function public.set_updated_at();
+
+-- ─── Templates ───────────────────────────────────────────────────────────────
+
+create table if not exists public.templates (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  name text not null check (length(trim(name)) > 0),
+  items text[] not null default '{}',
+  created_at timestamptz not null default now()
+);
+
+create index if not exists templates_user_id_idx
+  on public.templates(user_id);
+
+alter table public.templates enable row level security;
+
+drop policy if exists "templates_select_own" on public.templates;
+create policy "templates_select_own"
+  on public.templates for select
+  using (auth.uid() = user_id);
+
+drop policy if exists "templates_insert_own" on public.templates;
+create policy "templates_insert_own"
+  on public.templates for insert
+  with check (auth.uid() = user_id);
+
+drop policy if exists "templates_update_own" on public.templates;
+create policy "templates_update_own"
+  on public.templates for update
+  using (auth.uid() = user_id)
+  with check (auth.uid() = user_id);
+
+drop policy if exists "templates_delete_own" on public.templates;
+create policy "templates_delete_own"
+  on public.templates for delete
+  using (auth.uid() = user_id);
+

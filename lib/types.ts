@@ -85,6 +85,8 @@ export type OfferDraft = {
 
 export type MedicationTemplate = {
   id: string;
+  user_id: string;
   name: string;
   items: string[];
+  created_at: string;
 };

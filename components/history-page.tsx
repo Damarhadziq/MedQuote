@@ -265,10 +265,5 @@ function Detail({ label, value }: { label: string; value: string }) {
 }
 
 function formatSmallestUnitPrice(packageSnapshot: string, priceWithTax: number) {
-  const parts = packageSnapshot.split("·");
-  if (parts.length === 2 && parts[0].trim() === "Box") {
-    const detail = parts[1].trim();
-    return getSnapshotSmallestUnitPrice("Box", detail, priceWithTax);
-  }
-  return formatRupiah(priceWithTax);
+  return getSnapshotSmallestUnitPrice(packageSnapshot, priceWithTax);
 }
