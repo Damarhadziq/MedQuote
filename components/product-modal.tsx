@@ -177,6 +177,7 @@ export function ProductModal({
         <ModalContent
           title={product ? "Edit produk" : "Tambah produk"}
           description="Lengkapi informasi produk yang akan ditawarkan."
+          hideCloseButton
         >
           <form onSubmit={submit}>
             <div className="grid gap-4 p-5 sm:grid-cols-2">
@@ -356,6 +357,7 @@ export function ProductModal({
           description="Data yang sudah Anda isi belum tersimpan."
           variant="confirm"
           className="max-w-[420px]"
+          hideCloseButton
         >
           <div className="px-5 py-4 text-sm leading-6 text-slate-600">
             Jika keluar sekarang, perubahan pada produk akan hilang.

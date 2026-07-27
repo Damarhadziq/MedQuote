@@ -75,6 +75,7 @@ export function FixedInfoModal({
           title="Informasi tetap"
           description="Informasi ini otomatis digunakan pada setiap penawaran."
           className="max-w-[460px]"
+          hideCloseButton={editing}
         >
           {editing ? (
             <form onSubmit={submit}>
@@ -185,6 +186,7 @@ export function FixedInfoModal({
           description="Perubahan informasi tetap belum disimpan."
           variant="confirm"
           className="max-w-[420px]"
+          hideCloseButton
         >
           <div className="px-5 py-4 text-sm leading-6 text-slate-600">
             Jika keluar sekarang, perubahan yang Anda buat akan hilang.

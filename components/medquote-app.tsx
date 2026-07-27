@@ -712,7 +712,7 @@ export function MedQuoteApp() {
         onSave={saveFixedInfo}
       />
       <Dialog open={Boolean(confirmTarget)} onOpenChange={(open) => !open && setConfirmTarget(null)}>
-        <ModalContent title={confirmTarget?.type === "product" ? "Hapus produk?" : "Hapus penawaran?"} description="Tindakan ini tidak dapat dibatalkan." variant="confirm" className="max-w-[440px]">
+        <ModalContent title={confirmTarget?.type === "product" ? "Hapus produk?" : "Hapus penawaran?"} description="Tindakan ini tidak dapat dibatalkan." variant="confirm" className="max-w-[440px]" hideCloseButton>
           <div className="px-5 pb-5 text-sm leading-6 text-slate-600">{confirmTarget?.type === "product" ? `Produk “${confirmTarget.item.name}” akan dihapus dari etalase. Riwayat penawaran yang sudah tersimpan tidak akan berubah.` : `Penawaran ${confirmTarget?.item.offer_number} untuk ${confirmTarget?.item.recipient_name} akan dihapus permanen.`}</div>
           <div className="flex justify-end gap-2 px-5 pb-5"><Button variant="secondary" onClick={() => setConfirmTarget(null)}>Batal</Button><Button variant="destructive" loading={deleting} onClick={() => { if (confirmTarget?.type === "product") void deleteProduct(confirmTarget.item); else if (confirmTarget?.type === "offer") void deleteOffer(confirmTarget.item); }}>Hapus</Button></div>
         </ModalContent>

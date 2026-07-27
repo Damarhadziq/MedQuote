@@ -30,12 +30,14 @@ export function ModalContent({
   title,
   description,
   variant = "default",
+  hideCloseButton,
 }: {
   children: React.ReactNode;
   className?: string;
   title: string;
   description?: string;
   variant?: "default" | "confirm";
+  hideCloseButton?: boolean;
 }) {
   const { contentRef, onOpenAutoFocus } = useInitialFieldFocus();
 
@@ -58,7 +60,7 @@ export function ModalContent({
           className,
         )}
       >
-        <OverlayHeader title={title} description={description} />
+        <OverlayHeader title={title} description={description} hideCloseButton={hideCloseButton} />
         {children}
       </DialogPrimitive.Content>
     </DialogPrimitive.Portal>
@@ -70,11 +72,13 @@ export function DrawerContent({
   title,
   description,
   className,
+  hideCloseButton,
 }: {
   children: React.ReactNode;
   title: string;
   description?: string;
   className?: string;
+  hideCloseButton?: boolean;
 }) {
   const { contentRef, onOpenAutoFocus } = useInitialFieldFocus();
 
@@ -89,7 +93,7 @@ export function DrawerContent({
           className,
         )}
       >
-        <OverlayHeader title={title} description={description} variant="drawer" />
+        <OverlayHeader title={title} description={description} variant="drawer" hideCloseButton={hideCloseButton} />
         {children}
       </DialogPrimitive.Content>
     </DialogPrimitive.Portal>
@@ -100,23 +104,25 @@ function OverlayHeader({
   title,
   description,
   variant = "modal",
+  hideCloseButton,
 }: {
   title: string;
   description?: string;
   variant?: "modal" | "drawer";
+  hideCloseButton?: boolean;
 }) {
   return (
     <div
       className={cn(
-        "flex shrink-0 justify-between gap-4 px-4 sm:px-6",
-        variant === "drawer" ? "items-center py-5" : "items-start py-4",
+        "flex shrink-0 justify-between gap-4 px-4 sm:px-6 items-center",
+        variant === "drawer" ? "py-5" : "py-4",
       )}
     >
       <div>
         <DialogPrimitive.Title
           className={cn(
             "font-semibold text-slate-900",
-            variant === "drawer" ? "text-xl leading-7" : "text-lg",
+            variant === "drawer" ? "text-xl leading-7" : "text-xl leading-7",
           )}
         >
           {title}
@@ -127,12 +133,14 @@ function OverlayHeader({
           </DialogPrimitive.Description>
         ) : null}
       </div>
-      <DialogPrimitive.Close
-        aria-label="Tutup"
-        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/20"
-      >
-        <X className="h-5 w-5" />
-      </DialogPrimitive.Close>
+      {!hideCloseButton && (
+        <DialogPrimitive.Close
+          aria-label="Tutup"
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/20"
+        >
+          <X className="h-5 w-5" />
+        </DialogPrimitive.Close>
+      )}
     </div>
   );
 }

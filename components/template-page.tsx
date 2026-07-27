@@ -91,6 +91,7 @@ export function TemplatePage({
         <ModalContent
           title={isCreating ? "Tambah template" : "Edit template"}
           className="sm:max-w-[560px]"
+          hideCloseButton
         >
           {editing && (
             <TemplateForm
@@ -234,7 +235,7 @@ function TemplateForm({
   return (
     <>
       <div className="min-h-0 flex-1 overflow-y-auto px-4 py-5 sm:px-6">
-        <div className="space-y-5">
+        <div className="space-y-6">
           {/* Name */}
           <Field
             label="Nama template"
@@ -251,8 +252,8 @@ function TemplateForm({
           </Field>
 
           {/* Product search */}
-          <div className="space-y-3">
-            <label className="text-sm font-medium text-slate-900">
+          <div className="space-y-4">
+            <label className="text-sm font-medium text-slate-900 block">
               Pilih produk
               <span className="ml-2 rounded-full bg-primary-soft px-2 py-0.5 text-xs font-medium text-primary">
                 {selectedIds.size} dipilih

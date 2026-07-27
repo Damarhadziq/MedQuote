@@ -76,7 +76,7 @@ export function createOfferPdf(offer: Offer, shouldSave = true) {
         money(item.hna_snapshot),
         money(item.price_with_tax),
         `${item.discount_percentage}%`,
-        money(item.final_unit_price),
+        `${money(item.final_unit_price)} / ${item.package_snapshot.split(" ")[0].toLowerCase()}`,
         money(smallestUnitPrice),
       ];
     }),

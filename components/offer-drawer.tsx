@@ -422,6 +422,7 @@ export function OfferDrawer({
           description="Data yang sudah Anda isi belum tersimpan."
           variant="confirm"
           className="max-w-[420px]"
+          hideCloseButton
         >
           <div className="px-5 py-4 text-sm leading-6 text-slate-600">
             Jika keluar sekarang, penawaran yang sedang disusun akan hilang.
