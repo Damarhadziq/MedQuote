@@ -104,6 +104,33 @@ export function MedQuoteApp() {
     return () => data.subscription.unsubscribe();
   }, []);
 
+  // Fitur Auto Logout (Auto-lock) jika tidak ada aktivitas pengguna (default 15 menit)
+  useEffect(() => {
+    if (!user) return;
+
+    const INACTIVITY_LIMIT_MS = 15 * 60 * 1000; // 15 Menit
+    let timer: NodeJS.Timeout;
+
+    const resetTimer = () => {
+      clearTimeout(timer);
+      timer = setTimeout(() => {
+        toast.info("Sesi Anda telah berakhir karena tidak ada aktivitas.");
+        void handleLogout();
+      }, INACTIVITY_LIMIT_MS);
+    };
+
+    // Dengarkan aktivitas pengguna (klik, pergerakan mouse, ketikan keyboard, scroll, touch)
+    const events = ["mousemove", "keydown", "click", "scroll", "touchstart"];
+    events.forEach((event) => window.addEventListener(event, resetTimer));
+
+    resetTimer(); // Mulai timer saat login / komponen di-mount
+
+    return () => {
+      clearTimeout(timer);
+      events.forEach((event) => window.removeEventListener(event, resetTimer));
+    };
+  }, [user]);
+
   useEffect(() => {
     if (!user) {
       setProducts([]);
