@@ -97,6 +97,15 @@ body {
   font-synthesis: none;
   letter-spacing: normal;
   text-rendering: optimizeLegibility;
+  -webkit-user-select: none;
+  user-select: none;
+  cursor: default;
+}
+
+@media (max-width: 640px) {
+  body {
+    font-size: 13px;
+  }
 }
 
 button,
@@ -105,7 +114,20 @@ textarea {
   font: inherit;
 }
 
+input,
+textarea,
+[contenteditable="true"] {
+  -webkit-user-select: text;
+  user-select: text;
+  cursor: text;
+}
+
 ::selection {
+  background: transparent;
+}
+
+input::selection,
+textarea::selection {
   background: #dfe4ff;
   color: #00145f;
 }

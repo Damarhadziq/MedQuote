@@ -1,7 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { Clock3, Download, Search, Trash2 } from "lucide-react";
+import { useMemo, useRef, useState } from "react";
+import { Clock3, Download, Package, Search, Trash2 } from "lucide-react";
 import type { Offer } from "@/lib/types";
 import { formatDate, formatRupiah, getSnapshotSmallestUnitPrice } from "@/lib/utils";
 import { Button } from "./ui/button";
@@ -22,6 +22,10 @@ export function HistoryPage({
   const [date, setDate] = useState("");
   const [selected, setSelected] = useState<Offer | null>(null);
 
+  const lastOfferRef = useRef(selected);
+  if (selected) lastOfferRef.current = selected;
+  const displayOffer = selected || lastOfferRef.current;
+
   const filtered = useMemo(() => {
     const needle = query.toLowerCase().trim();
     return offers.filter(
@@ -35,25 +39,25 @@ export function HistoryPage({
 
   return (
     <>
-      <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-[28px] font-semibold leading-10 text-slate-900">Riwayat penawaran</h1>
-          <p className="mt-1 text-sm text-slate-500">{offers.length} penawaran tersimpan</p>
+          <h1 className="text-xl sm:text-[28px] font-semibold leading-tight sm:leading-10 text-slate-900">Riwayat penawaran</h1>
+          <p className="mt-0.5 sm:mt-1 text-xs sm:text-sm text-slate-500">{offers.length} penawaran tersimpan</p>
         </div>
       </div>
 
-      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center">
-        <div className="relative w-full max-w-[420px]">
+      <div className="mb-6 flex items-center gap-2 sm:gap-3">
+        <div className="relative flex-1 min-w-0 sm:max-w-[420px]">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
           <Input
             aria-label="Cari riwayat"
-            className="pl-9"
-            placeholder="Cari nama dokter atau nomor penawaran"
+            className="pl-9 text-xs sm:text-sm"
+            placeholder="Cari dokter / no. penawaran"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
           />
         </div>
-        <div className="w-full sm:w-[220px]">
+        <div className="w-[145px] shrink-0 sm:w-[200px]">
           <DatePicker
             id="history-date"
             ariaLabel="Filter tanggal"
@@ -69,7 +73,7 @@ export function HistoryPage({
           {filtered.map((offer) => (
             <article
               key={offer.id}
-              className="group relative flex cursor-pointer flex-col rounded-xl border border-border bg-white p-5 transition-colors hover:border-primary/40"
+              className="group relative flex cursor-pointer flex-col rounded-xl border border-border bg-white p-5 transition-all hover:border-primary/50 hover:shadow-sm"
               onClick={() => setSelected(offer)}
               role="button"
               tabIndex={0}
@@ -77,24 +81,48 @@ export function HistoryPage({
               onKeyDown={(e) => e.key === "Enter" && setSelected(offer)}
             >
               {/* Header */}
-              <div className="mb-4 flex items-start justify-between gap-2">
-                <div className="min-w-0">
-                  <p className="truncate font-semibold text-slate-900">{offer.recipient_name}</p>
+              <div className="mb-2 flex items-start justify-between gap-2">
+                <div className="min-w-0 flex-1">
+                  <h3 className="truncate text-base sm:text-lg font-bold text-slate-900 leading-snug">{offer.recipient_name}</h3>
                   <p className="mt-0.5 text-xs text-slate-500">{offer.offer_number}</p>
                 </div>
-                <span className="shrink-0 rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-medium text-emerald-700">
-                  {offer.status}
+                <div className="flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-slate-400 hover:text-primary hover:bg-primary-soft/60"
+                    aria-label="Unduh PDF"
+                    onClick={() => onDownload(offer)}
+                  >
+                    <Download className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-slate-400 hover:text-red-600 hover:bg-red-50"
+                    aria-label="Hapus"
+                    onClick={() => onDelete(offer)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+
+              {/* Meta: Date & Product Count inline */}
+              <div className="mb-3.5 flex flex-wrap items-center gap-2 text-xs text-slate-500">
+                <span className="inline-flex items-center gap-1.5">
+                  <Clock3 className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+                  {formatDate(offer.offer_date)}
+                </span>
+                <span className="text-slate-300">•</span>
+                <span className="inline-flex items-center gap-1.5 font-medium text-slate-600">
+                  <Package className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+                  {offer.offer_items.length} produk
                 </span>
               </div>
 
-              {/* Meta */}
-              <div className="mb-4 flex items-center gap-1.5 text-xs text-slate-500">
-                <Clock3 className="h-3.5 w-3.5 shrink-0" />
-                {formatDate(offer.offer_date)}
-              </div>
-
               {/* Products preview */}
-              <div className="mb-4 min-h-[48px] flex-1">
+              <div className="flex-1">
                 <div className="flex flex-wrap gap-1.5">
                   {offer.offer_items.slice(0, 3).map((item) => (
                     <span
@@ -109,33 +137,6 @@ export function HistoryPage({
                       +{offer.offer_items.length - 3} lainnya
                     </span>
                   )}
-                </div>
-              </div>
-
-              {/* Footer */}
-              <div className="flex items-center justify-between border-t border-border pt-4">
-                <p className="text-xs text-slate-500">
-                  {offer.offer_items.length} produk
-                </p>
-                <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 text-slate-500 hover:text-primary"
-                    aria-label="Unduh PDF"
-                    onClick={() => onDownload(offer)}
-                  >
-                    <Download className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 text-slate-500 hover:text-red-600"
-                    aria-label="Hapus"
-                    onClick={() => onDelete(offer)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
                 </div>
               </div>
             </article>
@@ -158,13 +159,13 @@ export function HistoryPage({
           title="Detail penawaran"
           className="sm:max-w-[800px]"
         >
-          {selected ? (
+          {displayOffer ? (
             <OfferDetail
-              offer={selected}
-              onDownload={() => onDownload(selected)}
+              offer={displayOffer}
+              onDownload={() => onDownload(displayOffer)}
               onDelete={() => {
                 setSelected(null);
-                onDelete(selected);
+                onDelete(displayOffer);
               }}
             />
           ) : null}
@@ -237,17 +238,17 @@ function OfferDetail({
         </div>
       </div>
 
-      <div className="flex shrink-0 items-center justify-between gap-2 border-t border-border bg-white px-4 py-4 sm:px-6">
+      <div className="flex shrink-0 items-center justify-end gap-2 bg-white px-4 pb-5 pt-2 sm:px-6">
         <Button
           variant="ghost"
           className="text-red-600 hover:bg-red-50 hover:text-red-600"
           onClick={onDelete}
         >
-          <Trash2 className="mr-2 h-4 w-4" />
+          <Trash2 className="h-4 w-4" />
           Hapus
         </Button>
         <Button onClick={onDownload}>
-          <Download className="mr-2 h-4 w-4" />
+          <Download className="h-4 w-4" />
           Unduh PDF
         </Button>
       </div>

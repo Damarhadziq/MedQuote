@@ -51,10 +51,17 @@ SelectTrigger.displayName = SelectPrimitive.Trigger.displayName;
 export const SelectContent = React.forwardRef<
   React.ElementRef<typeof SelectPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof SelectPrimitive.Content>
->(({ className, children, position = "popper", ...props }, ref) => (
+>(({ className, children, position = "popper", onPointerDownOutside, ...props }, ref) => (
   <SelectPrimitive.Portal>
     <SelectPrimitive.Content
       ref={ref}
+      onPointerDownOutside={(event) => {
+        const target = event.target as HTMLElement | null;
+        if (target?.closest('button[data-state="open"]')) {
+          event.preventDefault();
+        }
+        onPointerDownOutside?.(event);
+      }}
       className={cn(
         "mq-floating relative z-[80] max-h-72 min-w-[8rem] overflow-hidden rounded-md border border-border bg-white text-slate-700",
         position === "popper" &&

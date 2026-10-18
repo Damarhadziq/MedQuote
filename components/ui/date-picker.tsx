@@ -41,15 +41,17 @@ export function DatePicker({
           aria-label={ariaLabel}
           aria-invalid={invalid}
           className={cn(
-            "h-10 w-full justify-start border-border px-3 font-medium data-[state=open]:border-primary data-[state=open]:ring-2 data-[state=open]:ring-primary/10",
+            "h-10 w-full justify-start border-border px-3 font-medium text-xs sm:text-sm data-[state=open]:border-primary data-[state=open]:ring-2 data-[state=open]:ring-primary/10",
             !selected && "text-placeholder",
             invalid && "border-red-500 focus-visible:ring-red-500/20",
           )}
         >
-          <CalendarDays className="h-4 w-4 text-slate-400" />
-          {selected
-            ? format(selected, "dd MMMM yyyy", { locale: id })
-            : placeholder}
+          <CalendarDays className="h-4 w-4 shrink-0 text-slate-400" />
+          <span className="truncate">
+            {selected
+              ? format(selected, "dd MMM yyyy", { locale: id })
+              : placeholder}
+          </span>
         </Button>
       </PopoverTrigger>
       <PopoverContent align="end" collisionPadding={16}>

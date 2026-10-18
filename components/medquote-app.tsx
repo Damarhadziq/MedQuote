@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { Boxes, ChevronRight, CircleUserRound, Clock3, CopyPlus, Info, LogOut, Menu, Search } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Boxes, Check, ChevronRight, CircleUserRound, Clock3, CopyPlus, Info, LogOut, Menu, Search, SlidersHorizontal, X } from "lucide-react";
 import { Toaster, toast } from "sonner";
 import type {
   AppUser,
@@ -71,7 +71,12 @@ export function MedQuoteApp() {
   const [confirmTarget, setConfirmTarget] = useState<
     { type: "product"; item: Product } | { type: "offer"; item: Offer } | null
   >(null);
+  const [filterModalOpen, setFilterModalOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
+
+  const lastConfirmRef = useRef(confirmTarget);
+  if (confirmTarget) lastConfirmRef.current = confirmTarget;
+  const displayConfirm = confirmTarget || lastConfirmRef.current;
 
   useEffect(() => {
     if (!supabase) {
@@ -571,11 +576,11 @@ export function MedQuoteApp() {
               <CircleUserRound className="h-5 w-5 shrink-0 text-slate-400" aria-hidden="true" />
               <div className="min-w-0"><p className="truncate text-sm font-medium text-slate-800">{user.name || user.email}</p>{user.name ? <p className="truncate text-xs text-slate-500">{user.email}</p> : null}</div>
             </div>
-            <Button className="w-full justify-start text-slate-600" variant="ghost" onClick={handleLogout}><LogOut className="h-4 w-4" aria-hidden="true" />Keluar</Button>
+            <Button className="w-full justify-start text-red-600 hover:bg-red-50 hover:text-red-700" variant="ghost" onClick={handleLogout}><LogOut className="h-4 w-4 text-red-600" aria-hidden="true" />Keluar</Button>
           </div>
         </aside>
-        <div className="min-w-0 flex-1">
-          <div className="flex h-14 items-center justify-between border-b border-border px-4 lg:hidden">
+        <div className="min-w-0 flex-1 pt-14 lg:pt-0">
+          <div className="fixed top-0 left-0 right-0 z-30 flex h-14 items-center justify-between border-b border-border bg-white px-4 lg:hidden">
             <div className="flex min-w-0 items-center gap-2 text-sm"><span className="font-semibold text-slate-900">MedQuote</span><ChevronRight className="h-4 w-4 shrink-0 text-slate-300" aria-hidden="true" /><span className="truncate text-slate-500">{activeTab === "etalase" ? "Etalase" : activeTab === "template" ? "Template Obat" : "Riwayat"}</span></div>
             <DropdownMenu>
               <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" aria-label="Buka menu navigasi"><Menu className="h-5 w-5" aria-hidden="true" /></Button></DropdownMenuTrigger>
@@ -584,7 +589,7 @@ export function MedQuoteApp() {
                 <DropdownMenuItem onSelect={() => setActiveTab("template")}><CopyPlus className="mr-2 h-4 w-4" aria-hidden="true" />Template Obat</DropdownMenuItem>
                 <DropdownMenuItem onSelect={() => setActiveTab("history")}><Clock3 className="mr-2 h-4 w-4" aria-hidden="true" />Riwayat</DropdownMenuItem>
                 <DropdownMenuItem onSelect={() => setInfoOpen(true)}><Info className="mr-2 h-4 w-4" aria-hidden="true" />Informasi tetap</DropdownMenuItem>
-                <DropdownMenuItem onSelect={() => void handleLogout()}><LogOut className="mr-2 h-4 w-4" aria-hidden="true" />Keluar</DropdownMenuItem>
+                <DropdownMenuItem destructive onSelect={() => void handleLogout()}><LogOut className="mr-2 h-4 w-4 text-red-600" aria-hidden="true" />Keluar</DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
@@ -604,38 +609,50 @@ export function MedQuoteApp() {
               />
             ) : (
             <>
-            <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-              <h1 className="text-[28px] font-semibold leading-10 text-slate-900">Etalase produk</h1>
-              <div className="grid grid-cols-2 gap-2 sm:flex sm:justify-end">
-                <Button variant="secondary" onClick={() => { setEditingProduct(null); setProductModalOpen(true); }}>Tambah produk</Button>
-                <Button onClick={() => setOfferOpen(true)} disabled={!products.length}>Tambah penawaran</Button>
+            <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <h1 className="text-xl sm:text-[28px] font-semibold leading-tight sm:leading-10 text-slate-900">Etalase produk</h1>
+              <div className="flex flex-row items-center gap-2 sm:justify-end">
+                <Button variant="secondary" className="flex-1 sm:flex-initial" onClick={() => { setEditingProduct(null); setProductModalOpen(true); }}>Tambah produk</Button>
+                <Button className="flex-1 sm:flex-initial" onClick={() => setOfferOpen(true)} disabled={!products.length}>Tambah penawaran</Button>
               </div>
             </div>
-        <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center">
-          <div className="relative w-full max-w-[420px]">
+        <div className="mb-4 flex items-center gap-2 sm:gap-3">
+          <div className="relative flex-1 min-w-0 sm:max-w-[420px]">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
             <Input
               aria-label="Cari produk"
-              className="pl-9"
+              className="pl-9 text-xs sm:text-sm"
               placeholder="Cari nama atau komposisi produk"
               value={query}
               onChange={(event) => setQuery(event.target.value)}
             />
           </div>
-          <div className="w-full sm:ml-auto sm:w-[220px]">
-            <Select value={packageFilter} onValueChange={setPackageFilter}>
-            <SelectTrigger aria-label="Filter kemasan">
-              <SelectValue placeholder="Semua kemasan" />
-            </SelectTrigger>
-            <SelectContent>
-              {packageTypes.map((item) => (
-                <SelectItem key={item} value={item}>
-                  {item === "Semua" ? "Semua kemasan" : item}
-                </SelectItem>
-              ))}
-            </SelectContent>
-            </Select>
-          </div>
+          <Button
+            type="button"
+            variant={packageFilter !== "Semua" ? "default" : "secondary"}
+            size="icon"
+            className="relative h-10 w-10 shrink-0"
+            aria-label="Filter kemasan"
+            onClick={() => setFilterModalOpen(true)}
+          >
+            <SlidersHorizontal className="h-4 w-4" />
+            {packageFilter !== "Semua" && (
+              <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5 rounded-full bg-primary ring-2 ring-white" />
+            )}
+          </Button>
+          {packageFilter !== "Semua" && (
+            <span className="hidden sm:inline-flex items-center gap-1.5 rounded-full bg-primary-soft px-3 py-1 text-xs font-medium text-primary">
+              {packageFilter}
+              <button
+                type="button"
+                onClick={() => setPackageFilter("Semua")}
+                className="ml-0.5 hover:text-primary-hover"
+                aria-label="Reset filter"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </span>
+          )}
         </div>
         <section className="overflow-hidden rounded-lg border border-border bg-white">
           {loading ? (
@@ -789,10 +806,75 @@ export function MedQuoteApp() {
         onOpenChange={setInfoOpen}
         onSave={saveFixedInfo}
       />
+      <Dialog open={filterModalOpen} onOpenChange={setFilterModalOpen}>
+        <ModalContent
+          title="Filter kemasan"
+          description="Pilih jenis kemasan untuk memfilter produk"
+          className="max-w-[360px]"
+          hideCloseButton
+        >
+          <div className="space-y-1.5 px-4 py-2 sm:px-6">
+            {packageTypes.map((item) => {
+              const isSelected = packageFilter === item;
+              return (
+                <button
+                  key={item}
+                  type="button"
+                  className={`flex w-full items-center justify-between rounded-lg px-3.5 py-2.5 text-sm font-medium transition-colors ${
+                    isSelected
+                      ? "bg-primary-soft text-primary font-semibold"
+                      : "text-slate-700 hover:bg-slate-50"
+                  }`}
+                  onClick={() => {
+                    setPackageFilter(item);
+                    setFilterModalOpen(false);
+                  }}
+                >
+                  <span>{item === "Semua" ? "Semua kemasan" : item}</span>
+                  {isSelected && <Check className="h-4 w-4 text-primary" />}
+                </button>
+              );
+            })}
+          </div>
+          <div className="flex justify-end gap-2 px-4 pb-5 pt-3 sm:px-6">
+            <Button variant="secondary" onClick={() => setFilterModalOpen(false)}>
+              Tutup
+            </Button>
+          </div>
+        </ModalContent>
+      </Dialog>
       <Dialog open={Boolean(confirmTarget)} onOpenChange={(open) => !open && setConfirmTarget(null)}>
-        <ModalContent title={confirmTarget?.type === "product" ? "Hapus produk?" : "Hapus penawaran?"} description="Tindakan ini tidak dapat dibatalkan." variant="confirm" className="max-w-[440px]" hideCloseButton>
-          <div className="px-5 pb-5 text-sm leading-6 text-slate-600">{confirmTarget?.type === "product" ? `Produk “${confirmTarget.item.name}” akan dihapus dari etalase. Riwayat penawaran yang sudah tersimpan tidak akan berubah.` : `Penawaran ${confirmTarget?.item.offer_number} untuk ${confirmTarget?.item.recipient_name} akan dihapus permanen.`}</div>
-          <div className="flex justify-end gap-2 px-5 pb-5"><Button variant="secondary" onClick={() => setConfirmTarget(null)}>Batal</Button><Button variant="destructive" loading={deleting} onClick={() => { if (confirmTarget?.type === "product") void deleteProduct(confirmTarget.item); else if (confirmTarget?.type === "offer") void deleteOffer(confirmTarget.item); }}>Hapus</Button></div>
+        <ModalContent
+          title={displayConfirm?.type === "product" ? "Hapus produk?" : "Hapus penawaran?"}
+          description="Tindakan ini tidak dapat dibatalkan."
+          variant="confirm"
+          className="max-w-[440px]"
+          hideCloseButton
+        >
+          {displayConfirm && (
+            <>
+              <div className="px-5 pb-4 pt-1 text-sm leading-6 text-slate-600">
+                {displayConfirm.type === "product"
+                  ? `Produk “${displayConfirm.item.name}” akan dihapus dari etalase. Riwayat penawaran yang sudah tersimpan tidak akan berubah.`
+                  : `Penawaran ${displayConfirm.item.offer_number} untuk ${displayConfirm.item.recipient_name} akan dihapus permanen.`}
+              </div>
+              <div className="flex justify-end gap-2 px-5 pb-5">
+                <Button variant="secondary" onClick={() => setConfirmTarget(null)}>
+                  Batal
+                </Button>
+                <Button
+                  variant="destructive"
+                  loading={deleting}
+                  onClick={() => {
+                    if (displayConfirm.type === "product") void deleteProduct(displayConfirm.item);
+                    else if (displayConfirm.type === "offer") void deleteOffer(displayConfirm.item);
+                  }}
+                >
+                  Hapus
+                </Button>
+              </div>
+            </>
+          )}
         </ModalContent>
       </Dialog>
     </div>

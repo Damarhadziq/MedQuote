@@ -79,7 +79,7 @@ export function FixedInfoModal({
         >
           {editing ? (
             <form onSubmit={submit}>
-              <div className="grid gap-4 px-5 pb-5 sm:grid-cols-2">
+              <div className="grid gap-4 px-5 pb-5 pt-1.5 sm:grid-cols-2">
                 <Field
                   label="Contact person"
                   htmlFor="fixed-contact-person"
@@ -191,7 +191,7 @@ export function FixedInfoModal({
           <div className="px-5 py-4 text-sm leading-6 text-slate-600">
             Jika keluar sekarang, perubahan yang Anda buat akan hilang.
           </div>
-          <div className="flex flex-col-reverse gap-2 px-5 pb-5 sm:flex-row sm:justify-end">
+          <div className="flex flex-row items-center justify-end gap-2 px-5 pb-5">
             <Button variant="secondary" onClick={() => setDiscardOpen(false)}>
               Kembali ke form
             </Button>

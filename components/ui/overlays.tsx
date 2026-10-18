@@ -115,20 +115,22 @@ function OverlayHeader({
     <div
       className={cn(
         "flex shrink-0 justify-between gap-4 px-4 sm:px-6 items-center",
-        variant === "drawer" ? "py-5" : "py-4",
+        variant === "drawer" ? "py-5" : "pt-4 pb-1.5 sm:pt-5 sm:pb-2",
       )}
     >
       <div>
         <DialogPrimitive.Title
           className={cn(
             "font-semibold text-slate-900",
-            variant === "drawer" ? "text-xl leading-7" : "text-xl leading-7",
+            variant === "drawer"
+              ? "text-xl leading-7"
+              : "text-lg sm:text-xl font-semibold leading-6 sm:leading-7",
           )}
         >
           {title}
         </DialogPrimitive.Title>
         {description ? (
-          <DialogPrimitive.Description className="mt-1 text-sm text-slate-500">
+          <DialogPrimitive.Description className="mt-0.5 text-xs sm:text-sm text-slate-500">
             {description}
           </DialogPrimitive.Description>
         ) : null}

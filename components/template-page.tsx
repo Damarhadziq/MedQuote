@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { CopyPlus, Pencil, Plus, Search, Trash2, X } from "lucide-react";
 import type { MedicationTemplate, Product } from "@/lib/types";
 import { uid } from "@/lib/utils";
@@ -23,6 +23,15 @@ export function TemplatePage({
 }) {
   const [editing, setEditing] = useState<MedicationTemplate | null>(null);
   const [isCreating, setIsCreating] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState<MedicationTemplate | null>(null);
+
+  const lastEditingRef = useRef(editing);
+  if (editing) lastEditingRef.current = editing;
+  const displayEditing = editing || lastEditingRef.current;
+
+  const lastDeleteRef = useRef(confirmDelete);
+  if (confirmDelete) lastDeleteRef.current = confirmDelete;
+  const displayDelete = confirmDelete || lastDeleteRef.current;
 
   const handleEdit = (template: MedicationTemplate) => {
     setEditing(template);
@@ -48,13 +57,13 @@ export function TemplatePage({
   return (
     <>
       {/* Page header */}
-      <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="mb-6 flex flex-row items-center justify-between gap-3">
         <div>
-          <h1 className="text-[28px] font-semibold leading-10 text-slate-900">Template Obat</h1>
-          <p className="mt-1 text-sm text-slate-500">{templates.length} template tersimpan</p>
+          <h1 className="text-xl sm:text-[28px] font-semibold leading-tight sm:leading-10 text-slate-900">Template Obat</h1>
+          <p className="mt-0.5 sm:mt-1 text-xs sm:text-sm text-slate-500">{templates.length} template tersimpan</p>
         </div>
         <Button onClick={handleCreate} className="shrink-0">
-          <Plus className="mr-2 h-4 w-4" /> Tambah template
+          <Plus className="h-4 w-4" /> Tambah template
         </Button>
       </div>
 
@@ -67,7 +76,7 @@ export function TemplatePage({
               template={template}
               products={products}
               onEdit={() => handleEdit(template)}
-              onDelete={() => onDelete(template)}
+              onDelete={() => setConfirmDelete(template)}
             />
           ))}
         </div>
@@ -81,7 +90,7 @@ export function TemplatePage({
             Buat template untuk mempercepat pembuatan penawaran.
           </p>
           <Button className="mt-4" onClick={handleCreate}>
-            <Plus className="mr-2 h-4 w-4" /> Tambah template
+            <Plus className="h-4 w-4" /> Tambah template
           </Button>
         </div>
       )}
@@ -93,13 +102,46 @@ export function TemplatePage({
           className="sm:max-w-[560px]"
           hideCloseButton
         >
-          {editing && (
+          {displayEditing && (
             <TemplateForm
-              template={editing}
+              template={displayEditing}
               products={products}
               onClose={handleClose}
               onSave={handleSave}
             />
+          )}
+        </ModalContent>
+      </Dialog>
+
+      {/* Confirm Delete modal */}
+      <Dialog open={Boolean(confirmDelete)} onOpenChange={(open) => !open && setConfirmDelete(null)}>
+        <ModalContent
+          title="Hapus template?"
+          description="Tindakan ini tidak dapat dibatalkan."
+          variant="confirm"
+          className="max-w-[420px]"
+          hideCloseButton
+        >
+          {displayDelete && (
+            <>
+              <div className="px-5 pb-4 pt-1 text-sm leading-6 text-slate-600">
+                Template “{displayDelete.name}” akan dihapus secara permanen.
+              </div>
+              <div className="flex justify-end gap-2 px-5 pb-5">
+                <Button variant="secondary" onClick={() => setConfirmDelete(null)}>
+                  Batal
+                </Button>
+                <Button
+                  variant="destructive"
+                  onClick={() => {
+                    onDelete(displayDelete);
+                    setConfirmDelete(null);
+                  }}
+                >
+                  Hapus
+                </Button>
+              </div>
+            </>
           )}
         </ModalContent>
       </Dialog>
@@ -129,7 +171,7 @@ function TemplateCard({
     <article className="flex flex-col rounded-xl border border-border bg-white p-5 transition-colors hover:border-primary/40">
       {/* Header */}
       <div className="mb-3 flex items-start justify-between gap-2">
-        <p className="font-semibold text-slate-900">{template.name}</p>
+        <h3 className="text-base sm:text-lg font-bold text-slate-900 leading-snug">{template.name}</h3>
         <div className="flex shrink-0 gap-1">
           <Button
             variant="ghost"
@@ -303,7 +345,7 @@ function TemplateForm({
       </div>
 
       {/* Footer actions */}
-      <div className="flex shrink-0 gap-2 border-t border-border bg-white px-4 py-4 sm:justify-end sm:px-6">
+      <div className="flex shrink-0 items-center justify-end gap-2 bg-white px-4 pb-5 pt-2 sm:px-6">
         <Button variant="secondary" onClick={onClose}>
           Batal
         </Button>

@@ -14,11 +14,18 @@ export const DropdownMenuTrigger = DropdownMenuPrimitive.Trigger;
 export const DropdownMenuContent = React.forwardRef<
   React.ElementRef<typeof DropdownMenuPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.Content>
->(({ className, sideOffset = 6, ...props }, ref) => (
+>(({ className, sideOffset = 6, onPointerDownOutside, ...props }, ref) => (
   <DropdownMenuPrimitive.Portal>
     <DropdownMenuPrimitive.Content
       ref={ref}
       sideOffset={sideOffset}
+      onPointerDownOutside={(event) => {
+        const target = event.target as HTMLElement | null;
+        if (target?.closest('button[data-state="open"]')) {
+          event.preventDefault();
+        }
+        onPointerDownOutside?.(event);
+      }}
       className={cn(
         "mq-floating z-[80] min-w-40 overflow-hidden rounded-md border border-border bg-white p-1 text-slate-700",
         className,

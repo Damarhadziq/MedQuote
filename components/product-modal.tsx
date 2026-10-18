@@ -180,7 +180,7 @@ export function ProductModal({
           hideCloseButton
         >
           <form onSubmit={submit}>
-            <div className="grid gap-4 p-5 sm:grid-cols-2">
+            <div className="grid gap-4 px-5 pb-5 pt-2 sm:grid-cols-2">
               <div className="sm:col-span-2">
                 <Field label="Nama produk" htmlFor="product-name" error={errors.name}>
                   <Input
@@ -362,7 +362,7 @@ export function ProductModal({
           <div className="px-5 py-4 text-sm leading-6 text-slate-600">
             Jika keluar sekarang, perubahan pada produk akan hilang.
           </div>
-          <div className="flex flex-col-reverse gap-2 px-5 pb-5 sm:flex-row sm:justify-end">
+          <div className="flex flex-row items-center justify-end gap-2 px-5 pb-5">
             <Button variant="secondary" onClick={() => setDiscardOpen(false)}>
               Kembali ke form
             </Button>

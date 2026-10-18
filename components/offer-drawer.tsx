@@ -396,7 +396,7 @@ export function OfferDrawer({
             </div>
           </div>
 
-          <div className="sticky bottom-0 z-10 flex shrink-0 flex-col gap-2 border-t border-border bg-white px-4 py-4 sm:flex-row sm:justify-end sm:px-6">
+          <div className="sticky bottom-0 z-10 flex shrink-0 flex-row items-center justify-end gap-2 border-t border-border bg-white px-4 py-3 sm:px-6">
             <Button
               variant="secondary"
               onClick={() => save(false)}
@@ -427,7 +427,7 @@ export function OfferDrawer({
           <div className="px-5 py-4 text-sm leading-6 text-slate-600">
             Jika keluar sekarang, penawaran yang sedang disusun akan hilang.
           </div>
-          <div className="flex flex-col-reverse gap-2 px-5 pb-5 sm:flex-row sm:justify-end">
+          <div className="flex flex-row items-center justify-end gap-2 px-5 pb-5">
             <Button variant="secondary" onClick={() => setDiscardOpen(false)}>
               Kembali ke form
             </Button>
