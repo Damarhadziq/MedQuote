@@ -13,18 +13,27 @@ export const rupiah = new Intl.NumberFormat("id-ID", {
 });
 
 export const formatRupiah = (value: number) => rupiah.format(Math.round(value));
+export const formatCurrency = formatRupiah;
 
 export const formatIntegerInput = (value: string) => {
   const digits = value.replace(/\D/g, "");
   return digits ? Number(digits).toLocaleString("id-ID") : "";
 };
 
-export const formatDate = (value: string) =>
-  new Intl.DateTimeFormat("id-ID", {
-    day: "2-digit",
-    month: "long",
-    year: "numeric",
-  }).format(new Date(`${value}T00:00:00`));
+export const formatDate = (value?: string | null) => {
+  if (!value) return "-";
+  try {
+    const dateObj = value.includes("T") ? new Date(value) : new Date(`${value}T00:00:00`);
+    if (isNaN(dateObj.getTime())) return value;
+    return new Intl.DateTimeFormat("id-ID", {
+      day: "2-digit",
+      month: "long",
+      year: "numeric",
+    }).format(dateObj);
+  } catch {
+    return value;
+  }
+};
 
 export const todayIso = () => new Date().toISOString().slice(0, 10);
 

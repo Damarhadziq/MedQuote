@@ -50,7 +50,28 @@ export type Offer = {
   offer_items: OfferItem[];
 };
 
-export type AppUser = { id: string; email: string; name?: string; user_metadata?: Record<string, any> };
+export type UserRole = "superadmin" | "detailer" | "manager";
+export type UserStatus = "active" | "inactive";
+
+export type ManagedUser = {
+  id: string;
+  email: string;
+  name: string;
+  role: UserRole;
+  status: UserStatus;
+  territory?: string;
+  phone?: string;
+  created_at: string;
+  offers_count?: number;
+};
+
+export type AppUser = {
+  id: string;
+  email: string;
+  name?: string;
+  role?: UserRole;
+  user_metadata?: Record<string, any>;
+};
 
 export type FixedInformation = {
   contact_person: string;

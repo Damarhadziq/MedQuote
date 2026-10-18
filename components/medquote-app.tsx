@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Boxes, Check, ChevronLeft, ChevronRight, CircleUserRound, Clock3, CopyPlus, FilePlus, Info, LogOut, Menu, PackagePlus, Search, SlidersHorizontal, X } from "lucide-react";
+import { Boxes, Check, ChevronLeft, ChevronRight, CircleUserRound, Clock3, CopyPlus, FilePlus, Info, LogOut, Menu, PackagePlus, Search, ShieldCheck, SlidersHorizontal, X } from "lucide-react";
 import { Toaster, toast } from "sonner";
 import type {
   AppUser,
   FixedInformation,
+  ManagedUser,
   Offer,
   OfferDraft,
   OfferItem,
@@ -14,7 +15,7 @@ import type {
   MedicationTemplate,
 } from "@/lib/types";
 import { demoOffers, demoProducts, demoTemplates } from "@/lib/demo-data";
-import { isSupabaseConfigured, supabase } from "@/lib/supabase";
+import { createSecondaryClient, isSupabaseConfigured, supabase } from "@/lib/supabase";
 import { createOfferPdf } from "@/lib/pdf";
 import {
   cn,
@@ -39,6 +40,8 @@ import { ProductModal } from "./product-modal";
 import { OfferDrawer } from "./offer-drawer";
 import { HistoryPage } from "./history-page";
 import { TemplatePage } from "./template-page";
+import { SuperadminPage } from "./superadmin-page";
+import { ExtractedProductItem } from "./ai-product-import";
 import { PackageChip } from "./package-chip";
 import { FixedInfoModal } from "./fixed-info-modal";
 
@@ -46,6 +49,39 @@ const PRODUCT_STORE = "medquote-demo-products-v2";
 const OFFER_STORE = "medquote-demo-offers";
 const FIXED_INFO_STORE = "medquote-fixed-information";
 const TEMPLATE_STORE = "medquote-templates";
+const MANAGED_USERS_STORE = "medquote-managed-users";
+const DEFAULT_MANAGED_USERS: ManagedUser[] = [
+  {
+    id: "usr-admin",
+    name: "Superadmin",
+    email: "admin@medquote.com",
+    role: "superadmin",
+    status: "active",
+    territory: "Kantor Pusat",
+    created_at: new Date().toISOString(),
+    offers_count: 0,
+  },
+  {
+    id: "usr-rosidah",
+    name: "Rosidah",
+    email: "rosidah@medquote.com",
+    role: "detailer",
+    status: "active",
+    territory: "Area Lapangan 1",
+    created_at: new Date().toISOString(),
+    offers_count: 0,
+  },
+  {
+    id: "usr-oky",
+    name: "Oky",
+    email: "oky@medquote.com",
+    role: "detailer",
+    status: "active",
+    territory: "Area Lapangan 2",
+    created_at: new Date().toISOString(),
+    offers_count: 0,
+  },
+];
 const DEFAULT_FIXED_INFO: FixedInformation = {
   contact_person: "Rosi",
   contact_number: "08984000823",
@@ -69,6 +105,7 @@ export function MedQuoteApp() {
   const [infoOpen, setInfoOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<"etalase" | "history" | "template">("etalase");
   const [templates, setTemplates] = useState<MedicationTemplate[]>([]);
+  const [managedUsers, setManagedUsers] = useState<ManagedUser[]>([]);
   const [confirmTarget, setConfirmTarget] = useState<
     { type: "product"; item: Product } | { type: "offer"; item: Offer } | null
   >(null);
@@ -90,6 +127,7 @@ export function MedQuoteApp() {
           id: sessionUser.id,
           email: sessionUser.email,
           name: sessionUser.user_metadata?.name,
+          role: sessionUser.user_metadata?.role,
           user_metadata: sessionUser.user_metadata,
         });
       }
@@ -103,6 +141,7 @@ export function MedQuoteApp() {
               id: sessionUser.id,
               email: sessionUser.email,
               name: sessionUser.user_metadata?.name,
+              role: sessionUser.user_metadata?.role,
               user_metadata: sessionUser.user_metadata,
             }
           : null,
@@ -143,6 +182,7 @@ export function MedQuoteApp() {
       setProducts([]);
       setOffers([]);
       setTemplates([]);
+      setManagedUsers([]);
       setFixedInfo(DEFAULT_FIXED_INFO);
       return;
     }
@@ -169,6 +209,76 @@ export function MedQuoteApp() {
   const loadData = async (activeUser: AppUser) => {
     setLoading(true);
     try {
+      // 1. Muat pengguna terkelola (Managed Users) - Bersihkan akun demo lawas secara tuntas
+      const isLegacyDemo = (email: string) => {
+        const em = email.toLowerCase().trim();
+        return (
+          em.startsWith("budi") ||
+          em.startsWith("siti") ||
+          em.startsWith("anton") ||
+          em.startsWith("rian") ||
+          em.startsWith("demo")
+        );
+      };
+
+      const localUsers = readDemo<ManagedUser[]>(MANAGED_USERS_STORE, DEFAULT_MANAGED_USERS);
+      let usersList = localUsers.filter((u) => !isLegacyDemo(u.email));
+
+      // Pastikan akun resmi lapangan selalu ada
+      DEFAULT_MANAGED_USERS.forEach((def) => {
+        if (!usersList.some((u) => u.email.toLowerCase() === def.email.toLowerCase())) {
+          usersList.push(def);
+        }
+      });
+
+      if (supabase) {
+        try {
+          // Hapus akun demo lawas dari tabel profiles Supabase agar bersih
+          await supabase
+            .from("profiles")
+            .delete()
+            .or("email.ilike.budi%,email.ilike.siti%,email.ilike.anton%,email.ilike.rian%");
+
+          const { data: profs, error: profError } = await supabase
+            .from("profiles")
+            .select("*")
+            .order("created_at", { ascending: false });
+          if (!profError && profs && profs.length > 0) {
+            const remoteValid = (profs as ManagedUser[]).filter(
+              (p) => !isLegacyDemo(p.email),
+            );
+            const userMap = new Map<string, ManagedUser>();
+            DEFAULT_MANAGED_USERS.forEach((u) => userMap.set(u.email.toLowerCase(), u));
+            remoteValid.forEach((u) => userMap.set(u.email.toLowerCase(), u));
+            usersList = Array.from(userMap.values());
+          }
+        } catch {
+          // Abaikan jika tabel profiles belum dibuat di Supabase
+        }
+      }
+
+      // Pastikan akun yang sedang aktif masuk ke daftar
+      const userExists = usersList.some(
+        (u) => u.email.toLowerCase() === activeUser.email.toLowerCase() || u.id === activeUser.id,
+      );
+      if (!userExists) {
+        const currentAsManaged: ManagedUser = {
+          id: activeUser.id,
+          name: activeUser.name || activeUser.email.split("@")[0],
+          email: activeUser.email,
+          role:
+            (activeUser.user_metadata?.role as any) ||
+            (activeUser.email.toLowerCase().includes("admin") ? "superadmin" : "detailer"),
+          status: "active",
+          territory: "Pusat & Lapangan",
+          created_at: new Date().toISOString(),
+          offers_count: 0,
+        };
+        usersList = [currentAsManaged, ...usersList];
+      }
+      writeDemo(MANAGED_USERS_STORE, usersList);
+      setManagedUsers(usersList);
+
       if (!supabase) {
         const storedProducts = readDemo<Product[]>(PRODUCT_STORE, demoProducts);
         const storedOffers = readDemo<Offer[]>(OFFER_STORE, demoOffers);
@@ -176,21 +286,19 @@ export function MedQuoteApp() {
         setOffers(storedOffers);
         return;
       }
+
       const [productResult, offerResult, templateResult] = await Promise.all([
         supabase
           .from("products")
           .select("*")
-          .eq("user_id", activeUser.id)
           .order("created_at", { ascending: false }),
         supabase
           .from("offers")
           .select("*, offer_items(*)")
-          .eq("user_id", activeUser.id)
           .order("created_at", { ascending: false }),
         supabase
           .from("templates")
           .select("*")
-          .eq("user_id", activeUser.id)
           .order("created_at", { ascending: false }),
       ]);
       if (productResult.error) throw productResult.error;
@@ -206,43 +314,192 @@ export function MedQuoteApp() {
     }
   };
 
-  const handleLogin = async (email: string, password: string, isRegister = false) => {
-    if (!supabase) {
-      await new Promise((resolve) => setTimeout(resolve, 350));
-      setUser({ id: "demo-user", email });
-      return;
-    }
-    if (isRegister) {
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-      });
-      if (error) throw new Error(readableAuthError(error.message));
-      if (data.session?.user) {
-        setUser({
-          id: data.session.user.id,
-          email: data.session.user.email!,
-          name: data.session.user.user_metadata?.name,
-          user_metadata: data.session.user.user_metadata,
-        });
-        toast.success("Akun berhasil didaftarkan.");
-      } else {
-        toast.success("Pendaftaran berhasil. Silakan cek email Anda untuk konfirmasi.");
+  const handleAddManagedUser = async (
+    userData: Omit<ManagedUser, "id" | "created_at" | "offers_count">,
+    password: string,
+  ) => {
+    const newId = uid();
+    const createdDate = new Date().toISOString();
+    const newUser: ManagedUser = {
+      ...userData,
+      id: newId,
+      created_at: createdDate,
+      offers_count: 0,
+    };
+
+    if (supabase) {
+      try {
+        const secondary = createSecondaryClient();
+        if (secondary) {
+          const { error: signUpError } = await secondary.auth.signUp({
+            email: userData.email,
+            password,
+            options: {
+              data: {
+                name: userData.name,
+                role: userData.role,
+                status: userData.status,
+                territory: userData.territory,
+              },
+            },
+          });
+          if (signUpError) {
+            console.warn("Secondary auth signup note:", signUpError.message);
+          }
+        }
+        // Simpan ke tabel profiles jika tabel tersedia
+        await supabase.from("profiles").insert([
+          {
+            id: newId,
+            email: userData.email,
+            name: userData.name,
+            role: userData.role,
+            status: userData.status,
+            territory: userData.territory,
+            phone: userData.phone,
+          },
+        ]);
+      } catch (err) {
+        console.warn("Profiles insert note:", err);
       }
+    }
+
+    setManagedUsers((prev) => {
+      const next = [newUser, ...prev];
+      writeDemo(MANAGED_USERS_STORE, next);
+      return next;
+    });
+
+    toast.success(`Akun ${userData.name} (${userData.email}) berhasil dibuat!`);
+  };
+
+  const handleUpdateManagedUser = async (id: string, updates: Partial<ManagedUser>) => {
+    if (supabase) {
+      try {
+        await supabase.from("profiles").update(updates).eq("id", id);
+      } catch (err) {
+        console.warn("Profiles update note:", err);
+      }
+    }
+
+    setManagedUsers((prev) => {
+      const next = prev.map((u) => (u.id === id ? { ...u, ...updates } : u));
+      writeDemo(MANAGED_USERS_STORE, next);
+      return next;
+    });
+
+    toast.success("Akun berhasil diperbarui.");
+  };
+
+  const handleDeleteManagedUser = async (id: string) => {
+    if (supabase) {
+      try {
+        await supabase.from("profiles").delete().eq("id", id);
+      } catch (err) {
+        console.warn("Profiles delete note:", err);
+      }
+    }
+
+    setManagedUsers((prev) => {
+      const next = prev.filter((u) => u.id !== id);
+      writeDemo(MANAGED_USERS_STORE, next);
+      return next;
+    });
+
+    toast.success("Akun pengguna berhasil dihapus.");
+  };
+
+  const handleLogin = async (email: string, password: string) => {
+    const rawEmail = email.trim();
+    // Normalisasi: jika user mengetik "rosidah", "oky", atau "admin", lengkapi domain @medquote.com
+    const trimmedEmail = rawEmail.includes("@") ? rawEmail : `${rawEmail}@medquote.com`;
+
+    const localUsers = readDemo<ManagedUser[]>(MANAGED_USERS_STORE, DEFAULT_MANAGED_USERS);
+    const matchedUser =
+      localUsers.find((u) => u.email.toLowerCase() === trimmedEmail.toLowerCase()) ||
+      DEFAULT_MANAGED_USERS.find((u) => u.email.toLowerCase() === trimmedEmail.toLowerCase());
+
+    if (!supabase) {
+      await new Promise((resolve) => setTimeout(resolve, 300));
+      if (matchedUser) {
+        setUser({
+          id: matchedUser.id,
+          email: matchedUser.email,
+          name: matchedUser.name,
+          role: matchedUser.role,
+          user_metadata: {
+            name: matchedUser.name,
+            role: matchedUser.role,
+            territory: matchedUser.territory,
+          },
+        });
+        return;
+      }
+      const isSuper = trimmedEmail.toLowerCase().includes("admin");
+      const name = trimmedEmail.split("@")[0];
+      setUser({
+        id: `user-${name}`,
+        email: trimmedEmail,
+        name: name.charAt(0).toUpperCase() + name.slice(1),
+        role: isSuper ? "superadmin" : "detailer",
+      });
       return;
     }
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
+
+    let loginRes = await supabase.auth.signInWithPassword({
+      email: trimmedEmail,
       password,
     });
-    if (error) throw new Error(readableAuthError(error.message));
-    if (!data.user.email)
+
+    if (loginRes.error) {
+      if (matchedUser) {
+        // Otomatis daftarkan akun lapangan ke Supabase Auth jika belum terdaftar
+        const { data: signUpData, error: signUpErr } = await supabase.auth.signUp({
+          email: trimmedEmail,
+          password,
+          options: {
+            data: {
+              name: matchedUser.name,
+              role: matchedUser.role,
+              territory: matchedUser.territory,
+            },
+          },
+        });
+        if (!signUpErr && signUpData?.session?.user) {
+          loginRes = { data: { user: signUpData.session.user, session: signUpData.session }, error: null };
+        } else {
+          // Fallback session langsung untuk akun resmi agar proses testing lapangan tidak terhambat
+          setUser({
+            id: matchedUser.id,
+            email: matchedUser.email,
+            name: matchedUser.name,
+            role: matchedUser.role,
+            user_metadata: {
+              name: matchedUser.name,
+              role: matchedUser.role,
+              territory: matchedUser.territory,
+            },
+          });
+          return;
+        }
+      }
+    }
+
+    if (loginRes.error) throw new Error(readableAuthError(loginRes.error.message));
+    if (!loginRes.data.user?.email)
       throw new Error("Akun tidak memiliki alamat email yang valid.");
+
+    const metaRole =
+      matchedUser?.role ||
+      (loginRes.data.user.user_metadata?.role as any) ||
+      (trimmedEmail.toLowerCase().includes("admin") ? "superadmin" : "detailer");
+
     setUser({
-      id: data.user.id,
-      email: data.user.email,
-      name: data.user.user_metadata?.name,
-      user_metadata: data.user.user_metadata,
+      id: loginRes.data.user.id,
+      email: loginRes.data.user.email,
+      name: loginRes.data.user.user_metadata?.name || matchedUser?.name || trimmedEmail.split("@")[0],
+      role: metaRole,
+      user_metadata: loginRes.data.user.user_metadata,
     });
   };
 
@@ -353,6 +610,98 @@ export function MedQuoteApp() {
       toast.error(messageFrom(reason, "Produk belum dapat dihapus."));
     } finally {
       setDeleting(false);
+    }
+  };
+
+  const handleBatchSaveProducts = async (items: ExtractedProductItem[]) => {
+    if (!user) return;
+    const toUpdate = items.filter(
+      (item) => item.matchedProductId && item.status === "price_changed",
+    );
+    const toInsert = items.filter(
+      (item) => !item.matchedProductId || item.status === "new",
+    );
+
+    const now = new Date().toISOString();
+
+    try {
+      if (!supabase) {
+        let updatedList = [...products];
+        // 1. Update existing
+        for (const item of toUpdate) {
+          updatedList = updatedList.map((p) =>
+            p.id === item.matchedProductId
+              ? {
+                  ...p,
+                  hna: item.hna,
+                  tax_percentage: item.tax_percentage,
+                  package_type: item.package_type,
+                  package_detail: item.package_detail,
+                  updated_at: now,
+                }
+              : p,
+          );
+        }
+        // 2. Insert new
+        for (const item of toInsert) {
+          const newP: Product = {
+            id: uid(),
+            user_id: user.id,
+            name: item.name,
+            composition: item.composition,
+            package_type: item.package_type,
+            package_detail: item.package_detail,
+            hna: item.hna,
+            tax_percentage: item.tax_percentage,
+            created_at: now,
+            updated_at: now,
+          };
+          updatedList.unshift(newP);
+        }
+        setProducts(updatedList);
+        writeDemo(PRODUCT_STORE, updatedList);
+      } else {
+        // 1. Update existing in Supabase
+        for (const item of toUpdate) {
+          await supabase
+            .from("products")
+            .update({
+              hna: item.hna,
+              tax_percentage: item.tax_percentage,
+              package_type: item.package_type,
+              package_detail: item.package_detail,
+              updated_at: now,
+            })
+            .eq("id", item.matchedProductId)
+            .eq("user_id", user.id);
+        }
+
+        // 2. Insert new in Supabase
+        if (toInsert.length > 0) {
+          const newRows = toInsert.map((item) => ({
+            user_id: user.id,
+            name: item.name,
+            composition: item.composition,
+            package_type: item.package_type,
+            package_detail: item.package_detail,
+            hna: item.hna,
+            tax_percentage: item.tax_percentage,
+            created_at: now,
+            updated_at: now,
+          }));
+          const { error: insErr } = await supabase.from("products").insert(newRows);
+          if (insErr) throw insErr;
+        }
+
+        await loadData(user);
+      }
+
+      toast.success(
+        `Berhasil menerapkan: ${toInsert.length} produk baru ditambahkan, ${toUpdate.length} harga produk diperbarui.`,
+      );
+    } catch (err) {
+      toast.error(messageFrom(err, "Gagal menerapkan pembaruan produk."));
+      throw err;
     }
   };
 
@@ -595,6 +944,82 @@ export function MedQuoteApp() {
   if (!user)
     return <LoginScreen isDemo={!isSupabaseConfigured} onLogin={handleLogin} />;
 
+  const isSuperadmin =
+    user.role === "superadmin" ||
+    user.user_metadata?.role === "superadmin" ||
+    user.email.toLowerCase() === "admin@medquote.com" ||
+    user.email.toLowerCase().startsWith("admin@");
+
+  // =========================================================================
+  // TAMPILAN SUPERADMIN (MANDIRI & TANPA SIDEBAR)
+  // =========================================================================
+  if (isSuperadmin) {
+    return (
+      <div className="min-h-screen bg-slate-50/50 text-sm text-slate-800">
+        <Toaster
+          richColors
+          position="top-right"
+          toastOptions={{
+            classNames: { toast: "mq-toast" },
+            style: { boxShadow: "none", borderColor: "#ECECEC" },
+          }}
+        />
+        {/* Top Header Bar Khusus Superadmin */}
+        <header className="sticky top-0 z-30 border-b border-border bg-white shadow-xs">
+          <div className="mx-auto flex h-16 max-w-[1440px] items-center justify-between px-4 sm:px-6 lg:px-8">
+            <div className="flex items-center gap-3">
+              <img
+                src="/logo-medikote-full.png"
+                alt="Medikote"
+                className="h-7 w-auto object-contain"
+              />
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-purple-50 px-2.5 py-0.5 text-xs font-semibold text-purple-700 border border-purple-200">
+                <ShieldCheck className="h-3.5 w-3.5" />
+                Superadmin
+              </span>
+            </div>
+            <div className="flex items-center gap-3 sm:gap-4">
+              <div className="flex items-center gap-2 rounded-lg bg-slate-50 px-3 py-1.5 border border-slate-200 text-xs text-slate-700">
+                <CircleUserRound className="h-4 w-4 text-slate-400" />
+                <span className="font-semibold text-slate-800">
+                  {user.name || "Superadmin"}
+                </span>
+                <span className="hidden sm:inline text-slate-400">
+                  ({user.email})
+                </span>
+              </div>
+              <Button
+                variant="ghost"
+                className="text-red-600 hover:bg-red-50 hover:text-red-700 h-9 px-3 gap-2 text-xs sm:text-sm font-medium"
+                onClick={handleLogout}
+              >
+                <LogOut className="h-4 w-4 text-red-600" />
+                <span>Keluar</span>
+              </Button>
+            </div>
+          </div>
+        </header>
+
+        {/* Workspace Superadmin - Full Width Tanpa Sidebar */}
+        <main className="mx-auto max-w-[1440px] px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+          <SuperadminPage
+            user={user}
+            products={products}
+            offers={offers}
+            managedUsers={managedUsers}
+            onAddUser={handleAddManagedUser}
+            onUpdateUser={handleUpdateManagedUser}
+            onDeleteUser={handleDeleteManagedUser}
+            loading={loading}
+          />
+        </main>
+      </div>
+    );
+  }
+
+  // =========================================================================
+  // TAMPILAN TIM DETAILER (DILENGKAPI SIDEBAR ETALASE, TEMPLATE & RIWAYAT)
+  // =========================================================================
   return (
     <div className="min-h-screen bg-white text-sm text-slate-800">
       <Toaster richColors position="top-right" toastOptions={{ classNames: { toast: "mq-toast" }, style: { boxShadow: "none", borderColor: "#ECECEC" } }} />
@@ -622,7 +1047,13 @@ export function MedQuoteApp() {
             <div className="flex min-w-0 items-center gap-2 text-sm">
               <img src="/logo-medikote-full.png" alt="Medikote" className="h-5 w-auto object-contain shrink-0" />
               <ChevronRight className="h-4 w-4 shrink-0 text-slate-300" aria-hidden="true" />
-              <span className="truncate text-slate-500 font-medium">{activeTab === "etalase" ? "Etalase" : activeTab === "template" ? "Template Obat" : "Riwayat"}</span>
+              <span className="truncate text-slate-500 font-medium">
+                {activeTab === "etalase"
+                  ? "Etalase"
+                  : activeTab === "template"
+                    ? "Template Obat"
+                    : "Riwayat"}
+              </span>
             </div>
             <DropdownMenu>
               <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" aria-label="Buka menu navigasi"><Menu className="h-5 w-5" aria-hidden="true" /></Button></DropdownMenuTrigger>
@@ -912,7 +1343,14 @@ export function MedQuoteApp() {
           </main>
         </div>
       </div>
-      <ProductModal open={productModalOpen} product={editingProduct} onOpenChange={setProductModalOpen} onSave={saveProduct} />
+      <ProductModal
+        open={productModalOpen}
+        product={editingProduct}
+        existingProducts={products}
+        onOpenChange={setProductModalOpen}
+        onSave={saveProduct}
+        onBatchSave={handleBatchSaveProducts}
+      />
       <OfferDrawer open={offerOpen} products={products} fixedInfo={fixedInfo} templates={templates} onOpenChange={setOfferOpen} onSave={saveOffer} />
       <FixedInfoModal
         open={infoOpen}

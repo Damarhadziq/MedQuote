@@ -6,15 +6,13 @@ import { Button } from "./ui/button";
 import { Field, Input } from "./ui/field";
 
 export function LoginScreen({
-  isDemo,
   onLogin,
 }: {
-  isDemo: boolean;
-  onLogin: (email: string, password: string, isRegister?: boolean) => Promise<void>;
+  isDemo?: boolean;
+  onLogin: (email: string, password: string) => Promise<void>;
 }) {
-  const [mode, setMode] = useState<"login" | "register">("login");
-  const [email, setEmail] = useState(isDemo ? "demo@medquote.id" : "");
-  const [password, setPassword] = useState(isDemo ? "medquote" : "");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -28,7 +26,7 @@ export function LoginScreen({
     }
     setLoading(true);
     try {
-      await onLogin(email.trim(), password, mode === "register");
+      await onLogin(email.trim(), password);
     } catch (reason) {
       setError(
         reason instanceof Error
@@ -55,9 +53,7 @@ export function LoginScreen({
               className="h-8 w-auto object-contain mb-3"
             />
             <p className="mt-1 text-sm text-slate-500">
-              {mode === "register"
-                ? "Daftar akun untuk mulai mengelola penawaran harga."
-                : "Masuk untuk mengelola penawaran harga."}
+              Masuk untuk mengelola penawaran harga.
             </p>
           </div>
 
@@ -80,7 +76,7 @@ export function LoginScreen({
                   placeholder="Masukkan password"
                   className="pr-11"
                   type={showPassword ? "text" : "password"}
-                  autoComplete={mode === "register" ? "new-password" : "current-password"}
+                  autoComplete="current-password"
                   value={password}
                   onChange={(event) => setPassword(event.target.value)}
                   aria-invalid={Boolean(error)}
@@ -111,25 +107,8 @@ export function LoginScreen({
             ) : null}
 
             <Button className="w-full" type="submit" loading={loading}>
-              {loading ? "Memproses..." : mode === "register" ? "Daftar Akun" : "Masuk"}
+              {loading ? "Memproses..." : "Masuk"}
             </Button>
-
-            {!isDemo && (
-              <div className="text-center pt-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setMode((curr) => (curr === "login" ? "register" : "login"));
-                    setError("");
-                  }}
-                  className="text-xs text-primary font-medium hover:underline cursor-pointer"
-                >
-                  {mode === "login"
-                    ? "Belum punya akun? Daftar sekarang"
-                    : "Sudah punya akun? Masuk"}
-                </button>
-              </div>
-            )}
           </form>
         </section>
       </div>

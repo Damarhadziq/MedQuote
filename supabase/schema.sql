@@ -227,3 +227,41 @@ create policy "templates_delete_own"
   on public.templates for delete
   using (auth.uid() = user_id);
 
+-- ─── Profiles & User Management ───────────────────────────────────────────────
+
+create table if not exists public.profiles (
+  id uuid primary key references auth.users(id) on delete cascade,
+  email text not null,
+  name text not null,
+  role text not null default 'detailer' check (role in ('superadmin', 'detailer', 'manager')),
+  status text not null default 'active' check (status in ('active', 'inactive')),
+  territory text,
+  phone text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+alter table public.profiles enable row level security;
+
+drop policy if exists "profiles_select_all" on public.profiles;
+create policy "profiles_select_all"
+  on public.profiles for select
+  using (auth.role() = 'authenticated');
+
+drop policy if exists "profiles_insert_all" on public.profiles;
+create policy "profiles_insert_all"
+  on public.profiles for insert
+  with check (auth.role() = 'authenticated');
+
+drop policy if exists "profiles_update_all" on public.profiles;
+create policy "profiles_update_all"
+  on public.profiles for update
+  using (auth.role() = 'authenticated')
+  with check (auth.role() = 'authenticated');
+
+drop policy if exists "profiles_delete_all" on public.profiles;
+create policy "profiles_delete_all"
+  on public.profiles for delete
+  using (auth.role() = 'authenticated');
+
+

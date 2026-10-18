@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
+import { PenLine, Sparkles } from "lucide-react";
 import type { Product, ProductFormValue } from "@/lib/types";
 import {
   buildPackageDetail,
@@ -11,6 +12,7 @@ import { Dialog, ModalContent } from "./ui/overlays";
 import { Button } from "./ui/button";
 import { Field, Input } from "./ui/field";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
+import { AiProductImport, ExtractedProductItem } from "./ai-product-import";
 
 const emptyForm: ProductFormValue = {
   name: "",
@@ -37,14 +39,19 @@ function initialForm(product: Product | null): ProductFormValue {
 export function ProductModal({
   open,
   product,
+  existingProducts = [],
   onOpenChange,
   onSave,
+  onBatchSave,
 }: {
   open: boolean;
   product: Product | null;
+  existingProducts?: Product[];
   onOpenChange: (open: boolean) => void;
   onSave: (value: ProductFormValue, product: Product | null) => Promise<void>;
+  onBatchSave?: (items: ExtractedProductItem[]) => Promise<void>;
 }) {
+  const [tabMode, setTabMode] = useState<"manual" | "ai">("manual");
   const [form, setForm] = useState<ProductFormValue>(emptyForm);
   const [baseline, setBaseline] = useState<ProductFormValue>(emptyForm);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -54,6 +61,7 @@ export function ProductModal({
 
   useEffect(() => {
     if (!open) return;
+    setTabMode("manual");
     const next = initialForm(product);
     setErrors({});
     setForm(next);
@@ -176,178 +184,228 @@ export function ProductModal({
       >
         <ModalContent
           title={product ? "Edit produk" : "Tambah produk"}
-          description="Lengkapi informasi produk yang akan ditawarkan."
+          description={
+            tabMode === "ai"
+              ? "Scan pricelist PDF untuk mendeteksi obat baru & membandingkan perubahan harga."
+              : "Lengkapi informasi produk yang akan ditawarkan."
+          }
           hideCloseButton
+          className={tabMode === "ai" && !product ? "max-w-3xl" : "max-w-xl"}
         >
-          <form onSubmit={submit}>
-            <div className="grid gap-4 px-5 pb-5 pt-2 sm:grid-cols-2">
-              <div className="sm:col-span-2">
-                <Field label="Nama produk" htmlFor="product-name" error={errors.name}>
-                  <Input
-                    id="product-name"
-                    placeholder="Contoh: Amlodipine 10 mg"
-                    value={form.name}
-                    onChange={(event) => update("name", event.target.value)}
-                    aria-invalid={Boolean(errors.name)}
-                  />
-                </Field>
-              </div>
-              <div className="sm:col-span-2">
-                <Field
-                  label="Komposisi"
-                  htmlFor="product-composition"
-                  error={errors.composition}
-                >
-                  <Input
-                    id="product-composition"
-                    placeholder="Contoh: Amlodipine 10 mg / tablet"
-                    value={form.composition}
-                    onChange={(event) => update("composition", event.target.value)}
-                    aria-invalid={Boolean(errors.composition)}
-                  />
-                </Field>
-              </div>
-              <Field
-                label="Jenis kemasan"
-                htmlFor="product-package-type"
-                error={errors.package_type}
+          {!product && (
+            <div className="flex border-b border-border px-5 pt-1 bg-slate-50/50">
+              <button
+                type="button"
+                onClick={() => setTabMode("manual")}
+                className={`flex items-center gap-2 border-b-2 px-4 py-2.5 text-xs sm:text-sm font-medium transition-all ${
+                  tabMode === "manual"
+                    ? "border-primary text-primary font-semibold bg-white rounded-t-md"
+                    : "border-transparent text-slate-500 hover:text-slate-800"
+                }`}
               >
-                <Select
-                  value={form.package_type}
-                  onValueChange={updatePackageType}
-                >
-                  <SelectTrigger
-                    id="product-package-type"
-                    aria-invalid={Boolean(errors.package_type)}
-                  >
-                    <SelectValue placeholder="Pilih jenis kemasan" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {[
-                      "Box",
-                      "Botol",
-                      "Tube",
-                    ].map((item) => (
-                      <SelectItem key={item} value={item}>
-                        {item}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </Field>
-              <Field
-                label="Detail kemasan"
-                htmlFor="product-package-detail"
-                error={errors.package_detail}
+                <PenLine className="h-4 w-4" />
+                Input Manual
+              </button>
+              <button
+                type="button"
+                onClick={() => setTabMode("ai")}
+                className={`flex items-center gap-2 border-b-2 px-4 py-2.5 text-xs sm:text-sm font-medium transition-all ${
+                  tabMode === "ai"
+                    ? "border-primary text-primary font-semibold bg-white rounded-t-md"
+                    : "border-transparent text-slate-500 hover:text-slate-800"
+                }`}
               >
-                {form.package_type === "Tube" ? (
-                  <div className="grid grid-cols-[minmax(0,1fr)_88px]">
+                <Sparkles className="h-4 w-4 text-amber-500" />
+                Scan File / AI PDF
+                <span className="rounded-full bg-amber-100 text-amber-800 text-[10px] font-bold px-1.5 py-0.2 border border-amber-200">
+                  AI Smart
+                </span>
+              </button>
+            </div>
+          )}
+
+          {tabMode === "ai" && !product ? (
+            <AiProductImport
+              existingProducts={existingProducts}
+              onConfirmBatch={async (items) => {
+                if (onBatchSave) {
+                  await onBatchSave(items);
+                }
+                onOpenChange(false);
+              }}
+              onCancel={() => onOpenChange(false)}
+            />
+          ) : (
+            <form onSubmit={submit}>
+              <div className="grid gap-4 px-5 pb-5 pt-2 sm:grid-cols-2">
+                <div className="sm:col-span-2">
+                  <Field label="Nama produk" htmlFor="product-name" error={errors.name}>
                     <Input
-                      id="product-package-detail"
-                      placeholder="0"
-                      className="rounded-r-none"
-                      inputMode="decimal"
-                      value={packageDetail.amount}
-                      onChange={(event) => updatePackageAmount(event.target.value)}
-                      aria-invalid={Boolean(errors.package_detail)}
+                      id="product-name"
+                      placeholder="Contoh: Amlodipine 10 mg"
+                      value={form.name}
+                      onChange={(event) => update("name", event.target.value)}
+                      aria-invalid={Boolean(errors.name)}
                     />
-                    <Select
-                      value={tubeUnit}
-                      onValueChange={(unit) => {
-                        const nextUnit = unit as "g" | "mg";
-                        setTubeUnit(nextUnit);
-                        update(
-                          "package_detail",
-                          buildPackageDetail(
-                            form.package_type,
-                            packageDetail.amount,
-                            nextUnit,
-                          ),
-                        );
-                      }}
+                  </Field>
+                </div>
+                <div className="sm:col-span-2">
+                  <Field
+                    label="Komposisi"
+                    htmlFor="product-composition"
+                    error={errors.composition}
+                  >
+                    <Input
+                      id="product-composition"
+                      placeholder="Contoh: Amlodipine 10 mg / tablet"
+                      value={form.composition}
+                      onChange={(event) => update("composition", event.target.value)}
+                      aria-invalid={Boolean(errors.composition)}
+                    />
+                  </Field>
+                </div>
+                <Field
+                  label="Jenis kemasan"
+                  htmlFor="product-package-type"
+                  error={errors.package_type}
+                >
+                  <Select
+                    value={form.package_type}
+                    onValueChange={updatePackageType}
+                  >
+                    <SelectTrigger
+                      id="product-package-type"
+                      aria-invalid={Boolean(errors.package_type)}
                     >
-                      <SelectTrigger
-                        aria-label="Satuan tube"
-                        className="rounded-l-none border-l-0 px-2"
+                      <SelectValue placeholder="Pilih jenis kemasan" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {[
+                        "Box",
+                        "Botol",
+                        "Tube",
+                      ].map((item) => (
+                        <SelectItem key={item} value={item}>
+                          {item}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </Field>
+                <Field
+                  label="Detail kemasan"
+                  htmlFor="product-package-detail"
+                  error={errors.package_detail}
+                >
+                  {form.package_type === "Tube" ? (
+                    <div className="grid grid-cols-[minmax(0,1fr)_88px]">
+                      <Input
+                        id="product-package-detail"
+                        placeholder="0"
+                        className="rounded-r-none"
+                        inputMode="decimal"
+                        value={packageDetail.amount}
+                        onChange={(event) => updatePackageAmount(event.target.value)}
+                        aria-invalid={Boolean(errors.package_detail)}
+                      />
+                      <Select
+                        value={tubeUnit}
+                        onValueChange={(unit) => {
+                          const nextUnit = unit as "g" | "mg";
+                          setTubeUnit(nextUnit);
+                          update(
+                            "package_detail",
+                            buildPackageDetail(
+                              form.package_type,
+                              packageDetail.amount,
+                              nextUnit,
+                            ),
+                          );
+                        }}
                       >
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="g">g</SelectItem>
-                        <SelectItem value="mg">mg</SelectItem>
-                      </SelectContent>
-                    </Select>
+                        <SelectTrigger
+                          aria-label="Satuan tube"
+                          className="rounded-l-none border-l-0 px-2"
+                        >
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="g">g</SelectItem>
+                          <SelectItem value="mg">mg</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  ) : (
+                    <div className="relative">
+                      <Input
+                        id="product-package-detail"
+                        placeholder="0"
+                        className="pr-20"
+                        inputMode="decimal"
+                        value={packageDetail.amount}
+                        onChange={(event) => updatePackageAmount(event.target.value)}
+                        aria-invalid={Boolean(errors.package_detail)}
+                      />
+                      <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-slate-500">
+                        {form.package_type === "Box" ? "tablet" : "ml"}
+                      </span>
+                    </div>
+                  )}
+                </Field>
+                <Field label="HNA" htmlFor="product-hna" error={errors.hna}>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-slate-500">
+                      Rp
+                    </span>
+                    <Input
+                      id="product-hna"
+                      placeholder="0"
+                      className="pl-9"
+                      inputMode="numeric"
+                      autoComplete="off"
+                      value={formatIntegerInput(form.hna)}
+                      onChange={(event) =>
+                        update(
+                          "hna",
+                          event.target.value
+                            .replace(/\D/g, "")
+                            .replace(/^0+(?=\d)/, ""),
+                        )
+                      }
+                      aria-invalid={Boolean(errors.hna)}
+                    />
                   </div>
-                ) : (
+                </Field>
+                <Field label="PPN" htmlFor="product-tax" error={errors.tax_percentage}>
                   <div className="relative">
                     <Input
-                      id="product-package-detail"
-                      placeholder="0"
-                      className="pr-20"
-                      inputMode="decimal"
-                      value={packageDetail.amount}
-                      onChange={(event) => updatePackageAmount(event.target.value)}
-                      aria-invalid={Boolean(errors.package_detail)}
+                      id="product-tax"
+                      placeholder="11"
+                      className="pr-9"
+                      type="number"
+                      min="0"
+                      max="100"
+                      step="0.1"
+                      value={form.tax_percentage}
+                      onChange={(event) => update("tax_percentage", event.target.value)}
+                      aria-invalid={Boolean(errors.tax_percentage)}
                     />
-                    <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-slate-500">
-                      {form.package_type === "Box" ? "tablet" : "ml"}
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-slate-500">
+                      %
                     </span>
                   </div>
-                )}
-              </Field>
-              <Field label="HNA" htmlFor="product-hna" error={errors.hna}>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-slate-500">
-                    Rp
-                  </span>
-                  <Input
-                    id="product-hna"
-                    placeholder="0"
-                    className="pl-9"
-                    inputMode="numeric"
-                    autoComplete="off"
-                    value={formatIntegerInput(form.hna)}
-                    onChange={(event) =>
-                      update(
-                        "hna",
-                        event.target.value
-                          .replace(/\D/g, "")
-                          .replace(/^0+(?=\d)/, ""),
-                      )
-                    }
-                    aria-invalid={Boolean(errors.hna)}
-                  />
-                </div>
-              </Field>
-              <Field label="PPN" htmlFor="product-tax" error={errors.tax_percentage}>
-                <div className="relative">
-                  <Input
-                    id="product-tax"
-                    placeholder="11"
-                    className="pr-9"
-                    type="number"
-                    min="0"
-                    max="100"
-                    step="0.1"
-                    value={form.tax_percentage}
-                    onChange={(event) => update("tax_percentage", event.target.value)}
-                    aria-invalid={Boolean(errors.tax_percentage)}
-                  />
-                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-slate-500">
-                    %
-                  </span>
-                </div>
-              </Field>
-            </div>
-            <div className="flex justify-end gap-2 px-5 pb-5">
-              <Button type="button" variant="secondary" onClick={requestClose}>
-                Batal
-              </Button>
-              <Button type="submit" loading={saving}>
-                {product ? "Simpan perubahan" : "Tambah produk"}
-              </Button>
-            </div>
-          </form>
+                </Field>
+              </div>
+              <div className="flex justify-end gap-2 px-5 pb-5">
+                <Button type="button" variant="secondary" onClick={requestClose}>
+                  Batal
+                </Button>
+                <Button type="submit" loading={saving}>
+                  {product ? "Simpan perubahan" : "Tambah produk"}
+                </Button>
+              </div>
+            </form>
+          )}
         </ModalContent>
       </Dialog>
 
