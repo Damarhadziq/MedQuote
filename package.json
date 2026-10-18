@@ -4,9 +4,10 @@
   "private": true,
   "scripts": {
     "dev": "vinext dev",
-    "build": "vinext build",
-    "start": "vinext start",
-    "test": "npm run build && node --test tests/rendered-html.test.mjs",
+    "build": "next build",
+    "build:vinext": "vinext build",
+    "start": "next start",
+    "test": "npm run build:vinext && node --test tests/rendered-html.test.mjs",
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
     "db:generate": "drizzle-kit generate"
   },

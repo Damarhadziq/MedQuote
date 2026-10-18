@@ -1,23 +1,18 @@
 import { createClient } from "@supabase/supabase-js";
 
-const env = (typeof import.meta !== "undefined" ? import.meta.env : undefined) as
-  | Record<string, string | undefined>
-  | undefined;
-const procEnv = (typeof process !== "undefined" ? process.env : undefined) as
-  | Record<string, string | undefined>
-  | undefined;
-
 const supabaseUrl =
-  env?.VITE_SUPABASE_URL ||
-  env?.NEXT_PUBLIC_SUPABASE_URL ||
-  procEnv?.VITE_SUPABASE_URL ||
-  procEnv?.NEXT_PUBLIC_SUPABASE_URL;
+  (typeof process !== "undefined" && process.env.NEXT_PUBLIC_SUPABASE_URL) ||
+  (typeof process !== "undefined" && process.env.VITE_SUPABASE_URL) ||
+  (typeof import.meta !== "undefined" && import.meta.env?.NEXT_PUBLIC_SUPABASE_URL) ||
+  (typeof import.meta !== "undefined" && import.meta.env?.VITE_SUPABASE_URL) ||
+  undefined;
 
 const supabaseAnonKey =
-  env?.VITE_SUPABASE_ANON_KEY ||
-  env?.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
-  procEnv?.VITE_SUPABASE_ANON_KEY ||
-  procEnv?.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  (typeof process !== "undefined" && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) ||
+  (typeof process !== "undefined" && process.env.VITE_SUPABASE_ANON_KEY) ||
+  (typeof import.meta !== "undefined" && import.meta.env?.NEXT_PUBLIC_SUPABASE_ANON_KEY) ||
+  (typeof import.meta !== "undefined" && import.meta.env?.VITE_SUPABASE_ANON_KEY) ||
+  undefined;
 
 export const isSupabaseConfigured = Boolean(supabaseUrl && supabaseAnonKey);
 

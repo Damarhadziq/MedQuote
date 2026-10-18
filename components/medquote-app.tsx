@@ -90,6 +90,7 @@ export function MedQuoteApp() {
           id: sessionUser.id,
           email: sessionUser.email,
           name: sessionUser.user_metadata?.name,
+          user_metadata: sessionUser.user_metadata,
         });
       }
       setAuthLoading(false);
@@ -102,6 +103,7 @@ export function MedQuoteApp() {
               id: sessionUser.id,
               email: sessionUser.email,
               name: sessionUser.user_metadata?.name,
+              user_metadata: sessionUser.user_metadata,
             }
           : null,
       );
@@ -144,13 +146,18 @@ export function MedQuoteApp() {
       setFixedInfo(DEFAULT_FIXED_INFO);
       return;
     }
-    setFixedInfo(
-      readDemo<FixedInformation>(
-        `${FIXED_INFO_STORE}-${user.id}`,
-        DEFAULT_FIXED_INFO,
-      ),
-    );
-    // Template demo mode fallback – akan di-override oleh loadData jika Supabase aktif
+    const metaFixed = user.user_metadata?.fixed_info as FixedInformation | undefined;
+    if (metaFixed) {
+      setFixedInfo(metaFixed);
+    } else {
+      setFixedInfo(
+        readDemo<FixedInformation>(
+          `${FIXED_INFO_STORE}-${user.id}`,
+          DEFAULT_FIXED_INFO,
+        ),
+      );
+    }
+    // Template fallback jika belum ada data di Supabase
     if (!supabase) {
       setTemplates(
         readDemo<MedicationTemplate[]>(`${TEMPLATE_STORE}-${user.id}`, demoTemplates),
@@ -199,10 +206,29 @@ export function MedQuoteApp() {
     }
   };
 
-  const handleLogin = async (email: string, password: string) => {
+  const handleLogin = async (email: string, password: string, isRegister = false) => {
     if (!supabase) {
       await new Promise((resolve) => setTimeout(resolve, 350));
       setUser({ id: "demo-user", email });
+      return;
+    }
+    if (isRegister) {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+      });
+      if (error) throw new Error(readableAuthError(error.message));
+      if (data.session?.user) {
+        setUser({
+          id: data.session.user.id,
+          email: data.session.user.email!,
+          name: data.session.user.user_metadata?.name,
+          user_metadata: data.session.user.user_metadata,
+        });
+        toast.success("Akun berhasil didaftarkan.");
+      } else {
+        toast.success("Pendaftaran berhasil. Silakan cek email Anda untuk konfirmasi.");
+      }
       return;
     }
     const { data, error } = await supabase.auth.signInWithPassword({
@@ -216,6 +242,7 @@ export function MedQuoteApp() {
       id: data.user.id,
       email: data.user.email,
       name: data.user.user_metadata?.name,
+      user_metadata: data.user.user_metadata,
     });
   };
 
@@ -224,10 +251,19 @@ export function MedQuoteApp() {
     setUser(null);
   };
 
-  const saveFixedInfo = (value: FixedInformation) => {
+  const saveFixedInfo = async (value: FixedInformation) => {
     if (!user) return;
     setFixedInfo(value);
     writeDemo(`${FIXED_INFO_STORE}-${user.id}`, value);
+    if (supabase) {
+      try {
+        await supabase.auth.updateUser({
+          data: { fixed_info: value },
+        });
+      } catch {
+        // Abaikan jika offline / batasan jaringan
+      }
+    }
     toast.success("Informasi tetap diperbarui.");
   };
 
@@ -605,6 +641,7 @@ export function MedQuoteApp() {
                 offers={offers}
                 onDownload={downloadOffer}
                 onDelete={(offer) => setConfirmTarget({ type: "offer", item: offer })}
+                loading={loading}
               />
             ) : activeTab === "template" ? (
               <TemplatePage
@@ -612,6 +649,7 @@ export function MedQuoteApp() {
                 products={products}
                 onSave={saveTemplate}
                 onDelete={deleteTemplate}
+                loading={loading}
               />
             ) : (
             <>
@@ -959,7 +997,8 @@ function AppLoading() {
 function ProductSkeleton() {
   return (
     <div className="overflow-hidden">
-      <div className="min-w-[1180px] divide-y divide-border">
+      {/* Desktop / tablet table skeleton */}
+      <div className="hidden sm:block min-w-[1180px] divide-y divide-border">
         {Array.from({ length: 7 }).map((_, index) => (
           <div
             key={index}
@@ -968,6 +1007,22 @@ function ProductSkeleton() {
             {Array.from({ length: 8 }).map((__, cell) => (
               <div key={cell} className="h-3 animate-pulse rounded bg-slate-100" />
             ))}
+          </div>
+        ))}
+      </div>
+      {/* Mobile card/row skeleton */}
+      <div className="sm:hidden divide-y divide-border">
+        {Array.from({ length: 6 }).map((_, index) => (
+          <div key={index} className="p-4 space-y-2">
+            <div className="flex justify-between items-center">
+              <div className="h-4 w-32 animate-pulse rounded bg-slate-100" />
+              <div className="h-4 w-16 animate-pulse rounded bg-slate-100" />
+            </div>
+            <div className="h-3 w-48 animate-pulse rounded bg-slate-100" />
+            <div className="flex justify-between items-center pt-1">
+              <div className="h-3 w-20 animate-pulse rounded bg-slate-100" />
+              <div className="h-4 w-24 animate-pulse rounded bg-slate-100" />
+            </div>
           </div>
         ))}
       </div>
