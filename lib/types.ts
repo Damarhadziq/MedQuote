@@ -50,7 +50,7 @@ export type Offer = {
   offer_items: OfferItem[];
 };
 
-export type AppUser = { id: string; email: string; name?: string };
+export type AppUser = { id: string; email: string; name?: string; user_metadata?: Record<string, any> };
 
 export type FixedInformation = {
   contact_person: string;

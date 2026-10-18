@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Boxes, Check, ChevronRight, CircleUserRound, Clock3, CopyPlus, Info, LogOut, Menu, Search, SlidersHorizontal, X } from "lucide-react";
+import { Boxes, Check, ChevronLeft, ChevronRight, CircleUserRound, Clock3, CopyPlus, FilePlus, Info, LogOut, Menu, PackagePlus, Search, SlidersHorizontal, X } from "lucide-react";
 import { Toaster, toast } from "sonner";
 import type {
   AppUser,
@@ -17,6 +17,7 @@ import { demoOffers, demoProducts, demoTemplates } from "@/lib/demo-data";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 import { createOfferPdf } from "@/lib/pdf";
 import {
+  cn,
   formatPackageDetailLabel,
   formatRupiah,
   getSmallestUnitPrice,
@@ -71,7 +72,6 @@ export function MedQuoteApp() {
   const [confirmTarget, setConfirmTarget] = useState<
     { type: "product"; item: Product } | { type: "offer"; item: Offer } | null
   >(null);
-  const [filterModalOpen, setFilterModalOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
   const lastConfirmRef = useRef(confirmTarget);
@@ -564,7 +564,9 @@ export function MedQuoteApp() {
       <Toaster richColors position="top-right" toastOptions={{ classNames: { toast: "mq-toast" }, style: { boxShadow: "none", borderColor: "#ECECEC" } }} />
       <div className="flex min-h-screen">
         <aside className="sticky top-0 hidden h-screen w-[248px] shrink-0 flex-col border-r border-border bg-white lg:flex">
-          <div className="px-6 py-6"><span className="text-xl font-semibold text-slate-900">MedQuote</span></div>
+          <div className="px-6 py-5 flex items-center">
+            <img src="/logo-medikote-full.png" alt="Medikote" className="h-7 w-auto object-contain" />
+          </div>
           <nav className="space-y-1 px-3" aria-label="Navigasi utama">
             <button type="button" className={`flex h-10 w-full items-center gap-3 rounded-md px-3 text-left text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 ${activeTab === "etalase" ? "bg-primary-soft text-primary" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"}`} aria-current={activeTab === "etalase" ? "page" : undefined} onClick={() => setActiveTab("etalase")}><Boxes className="h-4 w-4" aria-hidden="true" />Etalase</button>
             <button type="button" className={`flex h-10 w-full items-center gap-3 rounded-md px-3 text-left text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 ${activeTab === "template" ? "bg-primary-soft text-primary" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"}`} aria-current={activeTab === "template" ? "page" : undefined} onClick={() => setActiveTab("template")}><CopyPlus className="h-4 w-4" aria-hidden="true" />Template Obat</button>
@@ -581,7 +583,11 @@ export function MedQuoteApp() {
         </aside>
         <div className="min-w-0 flex-1 pt-14 lg:pt-0">
           <div className="fixed top-0 left-0 right-0 z-30 flex h-14 items-center justify-between border-b border-border bg-white px-4 lg:hidden">
-            <div className="flex min-w-0 items-center gap-2 text-sm"><span className="font-semibold text-slate-900">MedQuote</span><ChevronRight className="h-4 w-4 shrink-0 text-slate-300" aria-hidden="true" /><span className="truncate text-slate-500">{activeTab === "etalase" ? "Etalase" : activeTab === "template" ? "Template Obat" : "Riwayat"}</span></div>
+            <div className="flex min-w-0 items-center gap-2 text-sm">
+              <img src="/logo-medikote-full.png" alt="Medikote" className="h-5 w-auto object-contain shrink-0" />
+              <ChevronRight className="h-4 w-4 shrink-0 text-slate-300" aria-hidden="true" />
+              <span className="truncate text-slate-500 font-medium">{activeTab === "etalase" ? "Etalase" : activeTab === "template" ? "Template Obat" : "Riwayat"}</span>
+            </div>
             <DropdownMenu>
               <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" aria-label="Buka menu navigasi"><Menu className="h-5 w-5" aria-hidden="true" /></Button></DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="min-w-52">
@@ -609,11 +615,49 @@ export function MedQuoteApp() {
               />
             ) : (
             <>
-            <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="mb-4 sm:mb-6 flex items-center justify-between gap-3">
               <h1 className="text-xl sm:text-[28px] font-semibold leading-tight sm:leading-10 text-slate-900">Etalase produk</h1>
-              <div className="flex flex-row items-center gap-2 sm:justify-end">
-                <Button variant="secondary" className="flex-1 sm:flex-initial" onClick={() => { setEditingProduct(null); setProductModalOpen(true); }}>Tambah produk</Button>
-                <Button className="flex-1 sm:flex-initial" onClick={() => setOfferOpen(true)} disabled={!products.length}>Tambah penawaran</Button>
+              <div className="flex items-center gap-2">
+                {/* Mobile: 2 icon buttons aligned horizontally with the title */}
+                <div className="flex items-center gap-1.5 sm:hidden">
+                  <Button
+                    variant="secondary"
+                    size="icon"
+                    className="h-9 w-9 shrink-0"
+                    aria-label="Tambah produk"
+                    title="Tambah produk"
+                    onClick={() => { setEditingProduct(null); setProductModalOpen(true); }}
+                  >
+                    <PackagePlus className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    size="icon"
+                    className="h-9 w-9 shrink-0"
+                    aria-label="Tambah penawaran"
+                    title="Tambah penawaran"
+                    onClick={() => setOfferOpen(true)}
+                    disabled={!products.length}
+                  >
+                    <FilePlus className="h-4 w-4" />
+                  </Button>
+                </div>
+                {/* Desktop: Standard buttons with text */}
+                <div className="hidden sm:flex sm:items-center sm:gap-2">
+                  <Button
+                    variant="secondary"
+                    onClick={() => { setEditingProduct(null); setProductModalOpen(true); }}
+                  >
+                    <PackagePlus className="h-4 w-4" />
+                    Tambah produk
+                  </Button>
+                  <Button
+                    onClick={() => setOfferOpen(true)}
+                    disabled={!products.length}
+                  >
+                    <FilePlus className="h-4 w-4" />
+                    Tambah penawaran
+                  </Button>
+                </div>
               </div>
             </div>
         <div className="mb-4 flex items-center gap-2 sm:gap-3">
@@ -627,19 +671,42 @@ export function MedQuoteApp() {
               onChange={(event) => setQuery(event.target.value)}
             />
           </div>
-          <Button
-            type="button"
-            variant={packageFilter !== "Semua" ? "default" : "secondary"}
-            size="icon"
-            className="relative h-10 w-10 shrink-0"
-            aria-label="Filter kemasan"
-            onClick={() => setFilterModalOpen(true)}
-          >
-            <SlidersHorizontal className="h-4 w-4" />
-            {packageFilter !== "Semua" && (
-              <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5 rounded-full bg-primary ring-2 ring-white" />
-            )}
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                type="button"
+                variant={packageFilter !== "Semua" ? "default" : "secondary"}
+                size="icon"
+                className="relative h-10 w-10 shrink-0"
+                aria-label="Filter kemasan"
+              >
+                <SlidersHorizontal className="h-4 w-4" />
+                {packageFilter !== "Semua" && (
+                  <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5 rounded-full bg-primary ring-2 ring-white" />
+                )}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48 p-1.5 shadow-lg">
+              {packageTypes.map((item) => {
+                const isSelected = packageFilter === item;
+                return (
+                  <DropdownMenuItem
+                    key={item}
+                    onSelect={() => setPackageFilter(item)}
+                    className={cn(
+                      "flex items-center justify-between px-3 py-2 text-xs sm:text-sm font-medium cursor-pointer rounded-md transition-colors",
+                      isSelected
+                        ? "bg-primary-soft text-primary font-semibold"
+                        : "text-slate-700 hover:bg-slate-50",
+                    )}
+                  >
+                    <span>{item === "Semua" ? "Semua kemasan" : item}</span>
+                    {isSelected && <Check className="h-4 w-4 text-primary shrink-0" />}
+                  </DropdownMenuItem>
+                );
+              })}
+            </DropdownMenuContent>
+          </DropdownMenu>
           {packageFilter !== "Semua" && (
             <span className="hidden sm:inline-flex items-center gap-1.5 rounded-full bg-primary-soft px-3 py-1 text-xs font-medium text-primary">
               {packageFilter}
@@ -732,41 +799,6 @@ export function MedQuoteApp() {
                   </tbody>
                 </table>
               </div>
-              <div className="flex flex-col gap-3 border-t-[0.5px] border-border px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-                <p className="text-xs text-slate-500">
-                  Menampilkan {pageStart + 1}–{Math.min(pageStart + productsPerPage, filteredProducts.length)} dari {filteredProducts.length} produk
-                </p>
-                <nav className="flex flex-wrap items-center gap-1" aria-label="Navigasi halaman produk">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setPage((value) => Math.max(1, value - 1))}
-                    disabled={currentPage === 1}
-                  >
-                    Sebelumnya
-                  </Button>
-                  {Array.from({ length: pageCount }, (_, index) => index + 1).map((pageNumber) => (
-                    <Button
-                      key={pageNumber}
-                      variant={pageNumber === currentPage ? "default" : "ghost"}
-                      size="sm"
-                      className="min-w-9 px-2"
-                      aria-current={pageNumber === currentPage ? "page" : undefined}
-                      onClick={() => setPage(pageNumber)}
-                    >
-                      {pageNumber}
-                    </Button>
-                  ))}
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setPage((value) => Math.min(pageCount, value + 1))}
-                    disabled={currentPage === pageCount}
-                  >
-                    Berikutnya
-                  </Button>
-                </nav>
-              </div>
             </>
           ) : (
             <div className="px-5 py-16 text-center">
@@ -793,6 +825,50 @@ export function MedQuoteApp() {
             </div>
           )}
         </section>
+
+        {!loading && filteredProducts.length > 0 && (
+          <div className="mt-3.5 flex flex-col gap-2.5 sm:mt-4 sm:flex-row sm:items-center sm:justify-between px-1">
+            <p className="text-xs text-slate-500">
+              Menampilkan {pageStart + 1}–{Math.min(pageStart + productsPerPage, filteredProducts.length)} dari {filteredProducts.length} produk
+            </p>
+            <nav className="flex items-center gap-1 self-start sm:self-auto" aria-label="Navigasi halaman produk">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 px-2 text-xs sm:h-9 sm:px-3"
+                onClick={() => setPage((value) => Math.max(1, value - 1))}
+                disabled={currentPage === 1}
+                aria-label="Halaman sebelumnya"
+              >
+                <ChevronLeft className="h-4 w-4" />
+                <span className="hidden sm:inline ml-1">Sebelumnya</span>
+              </Button>
+              {Array.from({ length: pageCount }, (_, index) => index + 1).map((pageNumber) => (
+                <Button
+                  key={pageNumber}
+                  variant={pageNumber === currentPage ? "default" : "ghost"}
+                  size="sm"
+                  className="h-8 w-8 min-w-8 p-0 text-xs sm:h-9 sm:min-w-9 sm:px-2"
+                  aria-current={pageNumber === currentPage ? "page" : undefined}
+                  onClick={() => setPage(pageNumber)}
+                >
+                  {pageNumber}
+                </Button>
+              ))}
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 px-2 text-xs sm:h-9 sm:px-3"
+                onClick={() => setPage((value) => Math.min(pageCount, value + 1))}
+                disabled={currentPage === pageCount}
+                aria-label="Halaman berikutnya"
+              >
+                <span className="hidden sm:inline mr-1">Berikutnya</span>
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </nav>
+          </div>
+        )}
             </>
             )}
           </main>
@@ -806,43 +882,6 @@ export function MedQuoteApp() {
         onOpenChange={setInfoOpen}
         onSave={saveFixedInfo}
       />
-      <Dialog open={filterModalOpen} onOpenChange={setFilterModalOpen}>
-        <ModalContent
-          title="Filter kemasan"
-          description="Pilih jenis kemasan untuk memfilter produk"
-          className="max-w-[360px]"
-          hideCloseButton
-        >
-          <div className="space-y-1.5 px-4 py-2 sm:px-6">
-            {packageTypes.map((item) => {
-              const isSelected = packageFilter === item;
-              return (
-                <button
-                  key={item}
-                  type="button"
-                  className={`flex w-full items-center justify-between rounded-lg px-3.5 py-2.5 text-sm font-medium transition-colors ${
-                    isSelected
-                      ? "bg-primary-soft text-primary font-semibold"
-                      : "text-slate-700 hover:bg-slate-50"
-                  }`}
-                  onClick={() => {
-                    setPackageFilter(item);
-                    setFilterModalOpen(false);
-                  }}
-                >
-                  <span>{item === "Semua" ? "Semua kemasan" : item}</span>
-                  {isSelected && <Check className="h-4 w-4 text-primary" />}
-                </button>
-              );
-            })}
-          </div>
-          <div className="flex justify-end gap-2 px-4 pb-5 pt-3 sm:px-6">
-            <Button variant="secondary" onClick={() => setFilterModalOpen(false)}>
-              Tutup
-            </Button>
-          </div>
-        </ModalContent>
-      </Dialog>
       <Dialog open={Boolean(confirmTarget)} onOpenChange={(open) => !open && setConfirmTarget(null)}>
         <ModalContent
           title={displayConfirm?.type === "product" ? "Hapus produk?" : "Hapus penawaran?"}

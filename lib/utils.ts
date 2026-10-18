@@ -43,9 +43,9 @@ export type PackageDetailUnit = "tablet" | "ml" | "g" | "mg";
 
 export function getBoxUnitCount(
   packageType: string,
-  packageDetail: string,
+  packageDetail?: string,
 ): number | null {
-  if (packageType.trim().toLowerCase() !== "box") return null;
+  if (!packageType || packageType.trim().toLowerCase() !== "box" || !packageDetail) return null;
 
   const values = packageDetail.match(/\d+(?:[.,]\d+)?/g)?.map((value) =>
     Number(value.replace(",", ".")),
@@ -79,21 +79,22 @@ export const getSmallestUnitHna = getSmallestUnitPrice;
 
 export function getPackageDetailParts(
   packageType: string,
-  packageDetail: string,
+  packageDetail?: string,
 ): { amount: string; unit: PackageDetailUnit } {
-  const type = packageType.trim().toLowerCase();
+  const type = packageType?.trim().toLowerCase() ?? "";
+  const detail = packageDetail ?? "";
   const fallbackAmount =
-    packageDetail.match(/\d+(?:[.,]\d+)?/)?.[0]?.replace(",", ".") ?? "";
+    detail.match(/\d+(?:[.,]\d+)?/)?.[0]?.replace(",", ".") ?? "";
   const amount =
     type === "box"
-      ? String(getBoxUnitCount(packageType, packageDetail) ?? fallbackAmount)
+      ? String(getBoxUnitCount(packageType, detail) ?? fallbackAmount)
       : fallbackAmount;
 
   if (type === "box") return { amount, unit: "tablet" };
   if (type === "botol") return { amount, unit: "ml" };
   return {
     amount,
-    unit: /\bmg\b/i.test(packageDetail) ? "mg" : "g",
+    unit: /\bmg\b/i.test(detail) ? "mg" : "g",
   };
 }
 
@@ -109,8 +110,9 @@ export function buildPackageDetail(
 
 export function formatPackageDetailLabel(
   packageType: string,
-  packageDetail: string,
+  packageDetail?: string,
 ) {
+  if (!packageDetail) return "";
   const { amount, unit } = getPackageDetailParts(packageType, packageDetail);
   return amount ? `${amount} ${unit}` : packageDetail;
 }

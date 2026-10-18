@@ -1,8 +1,8 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Clock3, Download, Package, Search, Trash2 } from "lucide-react";
-import type { Offer } from "@/lib/types";
+import type { Offer, OfferItem } from "@/lib/types";
 import { formatDate, formatRupiah, getSnapshotSmallestUnitPrice } from "@/lib/utils";
 import { Button } from "./ui/button";
 import { DatePicker } from "./ui/date-picker";
@@ -13,10 +13,12 @@ export function HistoryPage({
   offers,
   onDownload,
   onDelete,
+  loading = false,
 }: {
   offers: Offer[];
   onDownload: (offer: Offer) => void;
   onDelete: (offer: Offer) => void;
+  loading?: boolean;
 }) {
   const [query, setQuery] = useState("");
   const [date, setDate] = useState("");
@@ -68,7 +70,10 @@ export function HistoryPage({
         </div>
       </div>
 
-      {filtered.length ? (
+      {/* Offers grid or Skeleton */}
+      {loading ? (
+        <HistorySkeleton />
+      ) : filtered.length ? (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {filtered.map((offer) => (
             <article
@@ -86,12 +91,13 @@ export function HistoryPage({
                   <h3 className="truncate text-base sm:text-lg font-bold text-slate-900 leading-snug">{offer.recipient_name}</h3>
                   <p className="mt-0.5 text-xs text-slate-500">{offer.offer_number}</p>
                 </div>
-                <div className="flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
+                <div className="flex items-center gap-1.5 shrink-0" onClick={(e) => e.stopPropagation()}>
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-8 w-8 text-slate-400 hover:text-primary hover:bg-primary-soft/60"
+                    className="h-8 w-8 rounded-md text-primary bg-primary-soft hover:bg-primary hover:text-white transition-colors"
                     aria-label="Unduh PDF"
+                    title="Unduh PDF"
                     onClick={() => onDownload(offer)}
                   >
                     <Download className="h-4 w-4" />
@@ -99,8 +105,9 @@ export function HistoryPage({
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-8 w-8 text-slate-400 hover:text-red-600 hover:bg-red-50"
+                    className="h-8 w-8 rounded-md text-red-600 bg-red-50 hover:bg-red-600 hover:text-white transition-colors"
                     aria-label="Hapus"
+                    title="Hapus riwayat"
                     onClick={() => onDelete(offer)}
                   >
                     <Trash2 className="h-4 w-4" />
@@ -123,21 +130,7 @@ export function HistoryPage({
 
               {/* Products preview */}
               <div className="flex-1">
-                <div className="flex flex-wrap gap-1.5">
-                  {offer.offer_items.slice(0, 3).map((item) => (
-                    <span
-                      key={item.id}
-                      className="rounded-md bg-slate-100 px-2 py-0.5 text-[11px] text-slate-600"
-                    >
-                      {item.product_name_snapshot}
-                    </span>
-                  ))}
-                  {offer.offer_items.length > 3 && (
-                    <span className="rounded-md bg-slate-100 px-2 py-0.5 text-[11px] text-slate-500">
-                      +{offer.offer_items.length - 3} lainnya
-                    </span>
-                  )}
-                </div>
+                <OfferProductChips items={offer.offer_items} />
               </div>
             </article>
           ))}
@@ -267,4 +260,109 @@ function Detail({ label, value }: { label: string; value: string }) {
 
 function formatSmallestUnitPrice(packageSnapshot: string, priceWithTax: number) {
   return getSnapshotSmallestUnitPrice(packageSnapshot, priceWithTax);
+}
+
+function OfferProductChips({ items }: { items: OfferItem[] }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [maxVisible, setMaxVisible] = useState<number>(() =>
+    items.length <= 2 ? items.length : 2,
+  );
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el || items.length <= 1) return;
+
+    const calculate = () => {
+      const containerWidth = el.offsetWidth;
+      if (!containerWidth) return;
+
+      const children = Array.from(el.children) as HTMLElement[];
+      let totalWidth = 0;
+      let count = 0;
+      const gap = 6;
+      const badgeEstimate = 42;
+
+      for (let i = 0; i < children.length; i++) {
+        const child = children[i];
+        if (child.dataset.moreBadge) continue;
+        const width = child.offsetWidth;
+        const isLast = i === items.length - 1;
+        const needed = totalWidth + width + (isLast ? 0 : gap + badgeEstimate);
+
+        if (needed <= containerWidth) {
+          totalWidth += width + gap;
+          count++;
+        } else {
+          break;
+        }
+      }
+
+      setMaxVisible(Math.max(1, count));
+    };
+
+    calculate();
+    const observer = new ResizeObserver(calculate);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [items]);
+
+  const visibleItems = items.slice(0, maxVisible);
+  const remaining = items.length - visibleItems.length;
+
+  return (
+    <div
+      ref={containerRef}
+      className="flex items-center gap-1.5 overflow-hidden flex-nowrap py-0.5"
+    >
+      {visibleItems.map((item) => (
+        <span
+          key={item.id}
+          className="shrink-0 max-w-[200px] truncate rounded-md bg-slate-100 px-2 py-0.5 text-[11px] text-slate-600"
+          title={item.product_name_snapshot}
+        >
+          {item.product_name_snapshot}
+        </span>
+      ))}
+      {remaining > 0 && (
+        <span
+          data-more-badge="true"
+          className="shrink-0 rounded-md bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-500"
+        >
+          +{remaining}
+        </span>
+      )}
+    </div>
+  );
+}
+
+export function HistorySkeleton() {
+  return (
+    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      {Array.from({ length: 6 }).map((_, index) => (
+        <div
+          key={index}
+          className="flex flex-col rounded-xl border border-border bg-white p-4 sm:p-5"
+        >
+          <div className="mb-2 flex items-start justify-between gap-2">
+            <div className="space-y-1.5 flex-1">
+              <div className="h-5 w-32 animate-pulse rounded bg-slate-100" />
+              <div className="h-3.5 w-24 animate-pulse rounded bg-slate-100" />
+            </div>
+            <div className="flex gap-1.5">
+              <div className="h-8 w-8 animate-pulse rounded bg-slate-100" />
+              <div className="h-8 w-8 animate-pulse rounded bg-slate-100" />
+            </div>
+          </div>
+          <div className="mb-3.5 flex items-center gap-2">
+            <div className="h-3.5 w-24 animate-pulse rounded bg-slate-100" />
+            <div className="h-3.5 w-16 animate-pulse rounded bg-slate-100" />
+          </div>
+          <div className="flex-1 flex gap-1.5">
+            <div className="h-5 w-28 animate-pulse rounded-md bg-slate-100" />
+            <div className="h-5 w-36 animate-pulse rounded-md bg-slate-100" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
 }

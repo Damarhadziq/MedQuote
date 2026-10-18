@@ -10,8 +10,9 @@ export function LoginScreen({
   onLogin,
 }: {
   isDemo: boolean;
-  onLogin: (email: string, password: string) => Promise<void>;
+  onLogin: (email: string, password: string, isRegister?: boolean) => Promise<void>;
 }) {
+  const [mode, setMode] = useState<"login" | "register">("login");
   const [email, setEmail] = useState(isDemo ? "demo@medquote.id" : "");
   const [password, setPassword] = useState(isDemo ? "medquote" : "");
   const [showPassword, setShowPassword] = useState(false);
@@ -27,7 +28,7 @@ export function LoginScreen({
     }
     setLoading(true);
     try {
-      await onLogin(email.trim(), password);
+      await onLogin(email.trim(), password, mode === "register");
     } catch (reason) {
       setError(
         reason instanceof Error
@@ -42,15 +43,21 @@ export function LoginScreen({
   return (
     <main
       className="relative flex min-h-screen items-center bg-cover bg-center p-4 sm:p-8"
-      style={{ backgroundImage: "url('/login-background.jpg')" }}
+      style={{ backgroundImage: "url('/bg-login.svg')" }}
     >
-      <div aria-hidden="true" className="absolute inset-0 bg-slate-950/35" />
+      <div aria-hidden="true" className="absolute inset-0 bg-slate-950/20" />
       <div className="relative mx-auto flex w-full max-w-[1440px] justify-center">
-        <section className="w-full max-w-[400px] rounded-lg border border-border bg-white p-6 sm:p-8">
+        <section className="w-full max-w-[400px] rounded-xl border border-border bg-white p-6 shadow-sm sm:p-8">
           <div className="mb-7">
-            <h1 className="text-xl font-semibold text-slate-900">MedQuote</h1>
+            <img
+              src="/logo-medikote-full.png"
+              alt="Medikote"
+              className="h-8 w-auto object-contain mb-3"
+            />
             <p className="mt-1 text-sm text-slate-500">
-              Masuk untuk mengelola penawaran harga.
+              {mode === "register"
+                ? "Daftar akun untuk mulai mengelola penawaran harga."
+                : "Masuk untuk mengelola penawaran harga."}
             </p>
           </div>
 
@@ -73,7 +80,7 @@ export function LoginScreen({
                   placeholder="Masukkan password"
                   className="pr-11"
                   type={showPassword ? "text" : "password"}
-                  autoComplete="current-password"
+                  autoComplete={mode === "register" ? "new-password" : "current-password"}
                   value={password}
                   onChange={(event) => setPassword(event.target.value)}
                   aria-invalid={Boolean(error)}
@@ -104,8 +111,25 @@ export function LoginScreen({
             ) : null}
 
             <Button className="w-full" type="submit" loading={loading}>
-              {loading ? "Memproses..." : "Masuk"}
+              {loading ? "Memproses..." : mode === "register" ? "Daftar Akun" : "Masuk"}
             </Button>
+
+            {!isDemo && (
+              <div className="text-center pt-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMode((curr) => (curr === "login" ? "register" : "login"));
+                    setError("");
+                  }}
+                  className="text-xs text-primary font-medium hover:underline cursor-pointer"
+                >
+                  {mode === "login"
+                    ? "Belum punya akun? Daftar sekarang"
+                    : "Sudah punya akun? Masuk"}
+                </button>
+              </div>
+            )}
           </form>
         </section>
       </div>

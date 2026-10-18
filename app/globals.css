@@ -133,11 +133,11 @@ textarea::selection {
 }
 
 .mq-overlay[data-state="open"] {
-  animation: mq-fade-in 160ms ease-out;
+  animation: mq-fade-in 180ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .mq-overlay[data-state="closed"] {
-  animation: mq-fade-out 140ms ease-in;
+  animation: mq-fade-out 140ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .mq-modal[data-state="open"] {
@@ -145,7 +145,7 @@ textarea::selection {
 }
 
 .mq-modal[data-state="closed"] {
-  animation: mq-modal-out 140ms ease-in;
+  animation: mq-modal-out 140ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .mq-drawer[data-state="open"] {
@@ -153,17 +153,25 @@ textarea::selection {
 }
 
 .mq-drawer[data-state="closed"] {
-  animation: mq-drawer-out 160ms ease-in;
+  animation: mq-drawer-out 160ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .mq-floating[data-state="open"] {
-  transform-origin: var(--radix-popover-content-transform-origin, center);
+  transform-origin: var(
+    --radix-popover-content-transform-origin,
+    var(--radix-dropdown-menu-content-transform-origin,
+    var(--radix-select-content-transform-origin, center))
+  );
   animation: mq-floating-in 160ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .mq-floating[data-state="closed"] {
-  transform-origin: var(--radix-popover-content-transform-origin, center);
-  animation: mq-floating-out 120ms ease-in;
+  transform-origin: var(
+    --radix-popover-content-transform-origin,
+    var(--radix-dropdown-menu-content-transform-origin,
+    var(--radix-select-content-transform-origin, center))
+  );
+  animation: mq-floating-out 130ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 [data-sonner-toast] {
@@ -200,11 +208,13 @@ textarea::selection {
 @keyframes mq-modal-in {
   from {
     opacity: 0;
-    scale: 0.98;
+    scale: 0.96;
+    transform: translateY(6px);
   }
   to {
     opacity: 1;
     scale: 1;
+    transform: translateY(0);
   }
 }
 
@@ -212,10 +222,12 @@ textarea::selection {
   from {
     opacity: 1;
     scale: 1;
+    transform: translateY(0);
   }
   to {
     opacity: 0;
-    scale: 0.98;
+    scale: 0.96;
+    transform: translateY(6px);
   }
 }
 
@@ -244,8 +256,8 @@ textarea::selection {
 @keyframes mq-floating-in {
   from {
     opacity: 0;
-    scale: 0.98;
-    transform: translateY(-2px);
+    scale: 0.96;
+    transform: translateY(-4px);
   }
   to {
     opacity: 1;
@@ -258,10 +270,46 @@ textarea::selection {
   from {
     opacity: 1;
     scale: 1;
+    transform: translateY(0);
   }
   to {
     opacity: 0;
-    scale: 0.98;
+    scale: 0.96;
+    transform: translateY(-4px);
+  }
+}
+
+.mq-floating[data-side="top"][data-state="open"] {
+  animation-name: mq-floating-in-top;
+}
+
+.mq-floating[data-side="top"][data-state="closed"] {
+  animation-name: mq-floating-out-top;
+}
+
+@keyframes mq-floating-in-top {
+  from {
+    opacity: 0;
+    scale: 0.96;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    scale: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes mq-floating-out-top {
+  from {
+    opacity: 1;
+    scale: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    scale: 0.96;
+    transform: translateY(4px);
   }
 }
 

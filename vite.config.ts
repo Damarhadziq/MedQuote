@@ -1,4 +1,4 @@
-﻿import vinext from "vinext";
+import vinext from "vinext";
 import { defineConfig } from "vite";
 import hostingConfig from "./.openai/hosting.json";
 import { sites } from "./build/sites-vite-plugin";
@@ -50,6 +50,7 @@ export default defineConfig(async () => {
         ? { useFsEvents: false, usePolling: true }
         : undefined,
     },
+    envPrefix: ["VITE_", "NEXT_PUBLIC_"],
     plugins: [
       vinext(),
       sites(),

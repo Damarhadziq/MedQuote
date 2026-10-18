@@ -12,22 +12,27 @@ export function PackageChip({
   className,
 }: {
   type: string;
-  detail: string;
+  detail?: string;
   className?: string;
 }) {
+  const detailLabel = detail ? formatPackageDetailLabel(type, detail) : "";
   return (
     <span
       className={cn(
         "inline-flex max-w-full items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-medium",
-        packageStyles[type.trim().toLowerCase()] ?? "bg-slate-100 text-slate-700",
+        packageStyles[type?.trim().toLowerCase()] ?? "bg-slate-100 text-slate-700",
         className,
       )}
     >
       <span>{type}</span>
-      <span aria-hidden="true" className="opacity-45">
-        &middot;
-      </span>
-      <span>{formatPackageDetailLabel(type, detail)}</span>
+      {detailLabel ? (
+        <>
+          <span aria-hidden="true" className="opacity-45">
+            &middot;
+          </span>
+          <span>{detailLabel}</span>
+        </>
+      ) : null}
     </span>
   );
 }

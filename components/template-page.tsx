@@ -1,9 +1,9 @@
 "use client";
 
 import { useMemo, useRef, useState } from "react";
-import { CopyPlus, Pencil, Plus, Search, Trash2, X } from "lucide-react";
+import { CopyPlus, Eye, Pencil, Plus, Search, Trash2, X } from "lucide-react";
 import type { MedicationTemplate, Product } from "@/lib/types";
-import { uid } from "@/lib/utils";
+import { formatRupiah, uid } from "@/lib/utils";
 import { Button } from "./ui/button";
 import { Checkbox } from "./ui/checkbox";
 import { Field, Input } from "./ui/field";
@@ -15,15 +15,18 @@ export function TemplatePage({
   products,
   onSave,
   onDelete,
+  loading = false,
 }: {
   templates: MedicationTemplate[];
   products: Product[];
   onSave: (template: MedicationTemplate) => void | Promise<void>;
   onDelete: (template: MedicationTemplate) => void | Promise<void>;
+  loading?: boolean;
 }) {
   const [editing, setEditing] = useState<MedicationTemplate | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState<MedicationTemplate | null>(null);
+  const [viewingDetail, setViewingDetail] = useState<MedicationTemplate | null>(null);
 
   const lastEditingRef = useRef(editing);
   if (editing) lastEditingRef.current = editing;
@@ -32,6 +35,10 @@ export function TemplatePage({
   const lastDeleteRef = useRef(confirmDelete);
   if (confirmDelete) lastDeleteRef.current = confirmDelete;
   const displayDelete = confirmDelete || lastDeleteRef.current;
+
+  const lastDetailRef = useRef(viewingDetail);
+  if (viewingDetail) lastDetailRef.current = viewingDetail;
+  const displayDetail = viewingDetail || lastDetailRef.current;
 
   const handleEdit = (template: MedicationTemplate) => {
     setEditing(template);
@@ -62,13 +69,15 @@ export function TemplatePage({
           <h1 className="text-xl sm:text-[28px] font-semibold leading-tight sm:leading-10 text-slate-900">Template Obat</h1>
           <p className="mt-0.5 sm:mt-1 text-xs sm:text-sm text-slate-500">{templates.length} template tersimpan</p>
         </div>
-        <Button onClick={handleCreate} className="shrink-0">
-          <Plus className="h-4 w-4" /> Tambah template
+        <Button onClick={handleCreate} className="shrink-0 h-8 px-2.5 text-xs gap-1 sm:h-10 sm:px-4 sm:text-sm sm:gap-2">
+          <Plus className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Tambah template
         </Button>
       </div>
 
-      {/* Card grid */}
-      {templates.length ? (
+      {/* Card grid or Skeleton */}
+      {loading ? (
+        <TemplateSkeleton />
+      ) : templates.length ? (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {templates.map((template) => (
             <TemplateCard
@@ -77,6 +86,7 @@ export function TemplatePage({
               products={products}
               onEdit={() => handleEdit(template)}
               onDelete={() => setConfirmDelete(template)}
+              onViewDetail={() => setViewingDetail(template)}
             />
           ))}
         </div>
@@ -145,6 +155,28 @@ export function TemplatePage({
           )}
         </ModalContent>
       </Dialog>
+      {/* Detail modal */}
+      <Dialog open={Boolean(viewingDetail)} onOpenChange={(open) => !open && setViewingDetail(null)}>
+        <ModalContent
+          title={displayDetail ? `Detail Template: ${displayDetail.name}` : "Detail template"}
+          description={displayDetail ? `${displayDetail.items.length} produk tersimpan dalam template ini` : undefined}
+          className="sm:max-w-[620px]"
+          hideCloseButton
+        >
+          {displayDetail && (
+            <TemplateDetailModal
+              template={displayDetail}
+              products={products}
+              onClose={() => setViewingDetail(null)}
+              onEdit={() => {
+                const target = displayDetail;
+                setViewingDetail(null);
+                handleEdit(target);
+              }}
+            />
+          )}
+        </ModalContent>
+      </Dialog>
     </>
   );
 }
@@ -156,11 +188,13 @@ function TemplateCard({
   products,
   onEdit,
   onDelete,
+  onViewDetail,
 }: {
   template: MedicationTemplate;
   products: Product[];
   onEdit: () => void;
   onDelete: () => void;
+  onViewDetail: () => void;
 }) {
   const selectedProducts = useMemo(
     () => products.filter((p) => template.items.includes(p.id)),
@@ -168,16 +202,32 @@ function TemplateCard({
   );
 
   return (
-    <article className="flex flex-col rounded-xl border border-border bg-white p-5 transition-colors hover:border-primary/40">
+    <article
+      onClick={onViewDetail}
+      className="group flex flex-col rounded-xl border border-border bg-white p-4 sm:p-5 transition-all hover:border-primary/50 hover:shadow-xs cursor-pointer"
+    >
       {/* Header */}
       <div className="mb-3 flex items-start justify-between gap-2">
-        <h3 className="text-base sm:text-lg font-bold text-slate-900 leading-snug">{template.name}</h3>
-        <div className="flex shrink-0 gap-1">
+        <h3 className="text-base sm:text-lg font-bold text-slate-900 leading-snug group-hover:text-primary transition-colors">
+          {template.name}
+        </h3>
+        <div className="flex shrink-0 gap-1" onClick={(e) => e.stopPropagation()}>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 text-slate-400 hover:text-primary"
+            aria-label={`Lihat detail ${template.name}`}
+            title="Lihat detail"
+            onClick={onViewDetail}
+          >
+            <Eye className="h-4 w-4" />
+          </Button>
           <Button
             variant="ghost"
             size="icon"
             className="h-8 w-8 text-slate-400 hover:text-primary"
             aria-label={`Edit ${template.name}`}
+            title="Edit template"
             onClick={onEdit}
           >
             <Pencil className="h-4 w-4" />
@@ -187,6 +237,7 @@ function TemplateCard({
             size="icon"
             className="h-8 w-8 text-slate-400 hover:text-red-600"
             aria-label={`Hapus ${template.name}`}
+            title="Hapus template"
             onClick={onDelete}
           >
             <Trash2 className="h-4 w-4" />
@@ -218,8 +269,11 @@ function TemplateCard({
       </div>
 
       {/* Footer */}
-      <div className="mt-4 border-t border-border pt-3">
-        <p className="text-xs text-slate-500">{template.items.length} produk dipilih</p>
+      <div className="mt-4 flex items-center justify-between border-t border-border pt-3 text-xs text-slate-500">
+        <span>{template.items.length} produk dipilih</span>
+        <span className="text-primary font-medium text-xs group-hover:underline inline-flex items-center gap-1">
+          Lihat detail &rarr;
+        </span>
       </div>
     </article>
   );
@@ -354,5 +408,120 @@ function TemplateForm({
         </Button>
       </div>
     </>
+  );
+}
+
+/* ── Detail Modal component ──────────────────────────────────── */
+
+function TemplateDetailModal({
+  template,
+  products,
+  onClose,
+  onEdit,
+}: {
+  template: MedicationTemplate;
+  products: Product[];
+  onClose: () => void;
+  onEdit: () => void;
+}) {
+  const selectedProducts = useMemo(
+    () => products.filter((p) => template.items.includes(p.id)),
+    [products, template.items],
+  );
+
+  return (
+    <div className="flex flex-col">
+      <div className="flex items-center justify-between border-b border-border bg-slate-50/60 px-4 py-2 sm:px-6">
+        <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+          Daftar Obat dalam Template
+        </span>
+        <span className="rounded-full bg-primary-soft px-2.5 py-0.5 text-xs font-semibold text-primary">
+          {selectedProducts.length} produk
+        </span>
+      </div>
+
+      <div className="mq-scrollbar max-h-[50vh] overflow-y-auto divide-y divide-border px-4 py-2 sm:px-6">
+        {selectedProducts.length ? (
+          selectedProducts.map((p, idx) => (
+            <div
+              key={p.id}
+              className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1.5 py-3 first:pt-2 last:pb-2"
+            >
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2">
+                  <span className="w-5 shrink-0 text-xs font-semibold text-slate-400">
+                    {idx + 1}.
+                  </span>
+                  <span className="font-semibold text-slate-900 text-sm">
+                    {p.name}
+                  </span>
+                  <PackageChip type={p.package_type} detail={p.package_detail} className="text-[10px] py-0 px-1.5" />
+                </div>
+                <p className="ml-7 text-xs text-slate-500 mt-0.5">
+                  {p.composition} {p.package_detail && `• ${p.package_detail}`}
+                </p>
+              </div>
+              <div className="ml-7 sm:ml-0 text-left sm:text-right shrink-0">
+                <span className="text-xs sm:text-sm font-semibold text-slate-800">
+                  {formatRupiah(p.hna * (1 + p.tax_percentage / 100))}
+                </span>
+                <p className="text-[10px] text-slate-400">Termasuk PPN {p.tax_percentage}%</p>
+              </div>
+            </div>
+          ))
+        ) : (
+          <div className="py-8 text-center text-sm text-slate-400">
+            Tidak ada produk dalam template ini.
+          </div>
+        )}
+      </div>
+
+      <div className="flex justify-end gap-2 border-t border-border bg-slate-50/40 px-4 py-3 sm:px-6">
+        <Button variant="secondary" onClick={onClose}>
+          Tutup
+        </Button>
+        <Button
+          onClick={() => {
+            onClose();
+            onEdit();
+          }}
+        >
+          <Pencil className="h-3.5 w-3.5" />
+          Edit template
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+export function TemplateSkeleton() {
+  return (
+    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      {Array.from({ length: 6 }).map((_, index) => (
+        <div
+          key={index}
+          className="flex flex-col rounded-xl border border-border bg-white p-4 sm:p-5"
+        >
+          <div className="mb-3 flex items-start justify-between gap-2">
+            <div className="h-5 w-36 animate-pulse rounded bg-slate-100" />
+            <div className="flex gap-1">
+              <div className="h-8 w-8 animate-pulse rounded bg-slate-100" />
+              <div className="h-8 w-8 animate-pulse rounded bg-slate-100" />
+            </div>
+          </div>
+          <div className="flex-1 space-y-2">
+            <div className="flex flex-wrap gap-1.5">
+              <div className="h-5 w-24 animate-pulse rounded-md bg-slate-100" />
+              <div className="h-5 w-32 animate-pulse rounded-md bg-slate-100" />
+              <div className="h-5 w-20 animate-pulse rounded-md bg-slate-100" />
+            </div>
+          </div>
+          <div className="mt-4 border-t border-border pt-3 flex items-center justify-between">
+            <div className="h-3.5 w-24 animate-pulse rounded bg-slate-100" />
+            <div className="h-3.5 w-16 animate-pulse rounded bg-slate-100" />
+          </div>
+        </div>
+      ))}
+    </div>
   );
 }
