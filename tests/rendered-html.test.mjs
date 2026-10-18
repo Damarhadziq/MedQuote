@@ -23,14 +23,14 @@ async function render() {
   );
 }
 
-test("server-renders MedQuote without starter metadata", async () => {
+test("server-renders Medikote without starter metadata", async () => {
   const response = await render();
   assert.equal(response.status, 200);
   assert.match(response.headers.get("content-type") ?? "", /^text\/html\b/i);
 
   const html = await response.text();
-  assert.match(html, /<title>MedQuote<\/title>/i);
-  assert.match(html, /MedQuote/);
+  assert.match(html, /<title>Medikote<\/title>/i);
+  assert.match(html, /Medikote/);
   assert.doesNotMatch(html, /Your site is taking shape|codex-preview/i);
 });
 

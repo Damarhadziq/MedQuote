@@ -216,7 +216,7 @@ export function SuperadminPage({
   const openAddModal = () => {
     setFormName("");
     setFormEmail("");
-    setFormPassword("MedQuote123!");
+    setFormPassword("Medikote123!");
     setFormRole("detailer");
     setFormStatus("active");
     setFormTerritory("");
@@ -309,7 +309,7 @@ export function SuperadminPage({
                 Superadmin Workspace
               </span>
               <span className="text-xs text-slate-400">
-                Akun: {user.name || user.email}
+                Akun: {(user.name || user.email).replace(/medquote/gi, "Medikote")}
               </span>
             </div>
             <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white">
@@ -723,7 +723,7 @@ export function SuperadminPage({
                               <div className="min-w-0">
                                 <div className="flex items-center gap-2">
                                   <span className="font-semibold text-slate-900 truncate">
-                                    {item.name}
+                                    {item.name.replace(/medquote/gi, "Medikote")}
                                   </span>
                                   {isCurrentUser && (
                                     <span className="rounded bg-blue-50 px-1.5 py-0.5 text-[10px] font-medium text-blue-700 border border-blue-200">
@@ -732,7 +732,7 @@ export function SuperadminPage({
                                   )}
                                 </div>
                                 <span className="text-xs text-slate-500 truncate block">
-                                  {item.email}
+                                  {item.email.replace(/@medquote\.com/gi, "@medikote.com")}
                                 </span>
                               </div>
                             </div>
@@ -965,7 +965,7 @@ export function SuperadminPage({
               <Field label="Nama Lengkap" htmlFor="new-name">
                 <Input
                   id="new-name"
-                  placeholder="Contoh: Budi Santoso, S.Farm"
+                  placeholder="Contoh: Nama Detailer, S.Farm"
                   value={formName}
                   onChange={(e) => setFormName(e.target.value)}
                   required
@@ -976,7 +976,7 @@ export function SuperadminPage({
                 <Input
                   id="new-email"
                   type="email"
-                  placeholder="budi.detailer@medquote.com"
+                  placeholder="detailer@medikote.com"
                   value={formEmail}
                   onChange={(e) => setFormEmail(e.target.value)}
                   required
@@ -1182,8 +1182,8 @@ export function SuperadminPage({
             </div>
             <p className="text-xs sm:text-sm text-slate-600 mb-5 leading-relaxed">
               Apakah Anda yakin ingin menghapus akun{" "}
-              <strong className="text-slate-900">{deleteTarget.name}</strong> (
-              {deleteTarget.email})? Tindakan ini akan mencabut akses pengguna tersebut ke MedQuote.
+              <strong className="text-slate-900">{deleteTarget.name.replace(/medquote/gi, "Medikote")}</strong> (
+              {deleteTarget.email.replace(/@medquote\.com/gi, "@medikote.com")})? Tindakan ini akan mencabut akses pengguna tersebut ke Medikote.
             </p>
             <div className="flex items-center justify-end gap-2">
               <Button

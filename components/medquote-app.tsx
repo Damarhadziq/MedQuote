@@ -54,7 +54,7 @@ const DEFAULT_MANAGED_USERS: ManagedUser[] = [
   {
     id: "usr-admin",
     name: "Superadmin",
-    email: "admin@medquote.com",
+    email: "admin@medikote.com",
     role: "superadmin",
     status: "active",
     territory: "Kantor Pusat",
@@ -64,7 +64,7 @@ const DEFAULT_MANAGED_USERS: ManagedUser[] = [
   {
     id: "usr-rosidah",
     name: "Rosidah",
-    email: "rosidah@medquote.com",
+    email: "rosidah@medikote.com",
     role: "detailer",
     status: "active",
     territory: "Area Lapangan 1",
@@ -74,7 +74,7 @@ const DEFAULT_MANAGED_USERS: ManagedUser[] = [
   {
     id: "usr-oky",
     name: "Oky",
-    email: "oky@medquote.com",
+    email: "oky@medikote.com",
     role: "detailer",
     status: "active",
     territory: "Area Lapangan 2",
@@ -222,14 +222,28 @@ export function MedQuoteApp() {
       };
 
       const localUsers = readDemo<ManagedUser[]>(MANAGED_USERS_STORE, DEFAULT_MANAGED_USERS);
-      let usersList = localUsers.filter((u) => !isLegacyDemo(u.email));
 
-      // Pastikan akun resmi lapangan selalu ada
-      DEFAULT_MANAGED_USERS.forEach((def) => {
-        if (!usersList.some((u) => u.email.toLowerCase() === def.email.toLowerCase())) {
-          usersList.push(def);
-        }
+      // Normalisasi email dan filter akun demo lawas
+      const userMap = new Map<string, ManagedUser>();
+
+      // Muat akun default resmi terlebih dahulu
+      DEFAULT_MANAGED_USERS.forEach((u) => {
+        userMap.set(u.email.toLowerCase(), u);
       });
+
+      // Gabungkan akun lokal tersimpan (jika ada akun baru buatan Superadmin)
+      localUsers
+        .filter((u) => !isLegacyDemo(u.email))
+        .forEach((u) => {
+          const normEmail = u.email.replace(/@medquote\.com/gi, "@medikote.com").toLowerCase();
+          if (!userMap.has(normEmail)) {
+            userMap.set(normEmail, {
+              ...u,
+              name: u.name.replace(/medquote/gi, "Medikote"),
+              email: normEmail,
+            });
+          }
+        });
 
       if (supabase) {
         try {
@@ -244,13 +258,18 @@ export function MedQuoteApp() {
             .select("*")
             .order("created_at", { ascending: false });
           if (!profError && profs && profs.length > 0) {
-            const remoteValid = (profs as ManagedUser[]).filter(
-              (p) => !isLegacyDemo(p.email),
-            );
-            const userMap = new Map<string, ManagedUser>();
-            DEFAULT_MANAGED_USERS.forEach((u) => userMap.set(u.email.toLowerCase(), u));
-            remoteValid.forEach((u) => userMap.set(u.email.toLowerCase(), u));
-            usersList = Array.from(userMap.values());
+            profs
+              .filter((p) => !isLegacyDemo(p.email))
+              .forEach((p) => {
+                const normEmail = p.email.replace(/@medquote\.com/gi, "@medikote.com").toLowerCase();
+                const existing = userMap.get(normEmail);
+                userMap.set(normEmail, {
+                  ...(existing || {}),
+                  ...p,
+                  name: p.name.replace(/medquote/gi, "Medikote"),
+                  email: normEmail,
+                });
+              });
           }
         } catch {
           // Abaikan jika tabel profiles belum dibuat di Supabase
@@ -258,24 +277,24 @@ export function MedQuoteApp() {
       }
 
       // Pastikan akun yang sedang aktif masuk ke daftar
-      const userExists = usersList.some(
-        (u) => u.email.toLowerCase() === activeUser.email.toLowerCase() || u.id === activeUser.id,
-      );
-      if (!userExists) {
+      const activeNormEmail = activeUser.email.replace(/@medquote\.com/gi, "@medikote.com").toLowerCase();
+      if (!userMap.has(activeNormEmail)) {
         const currentAsManaged: ManagedUser = {
           id: activeUser.id,
-          name: activeUser.name || activeUser.email.split("@")[0],
-          email: activeUser.email,
+          name: (activeUser.name || activeUser.email.split("@")[0]).replace(/medquote/gi, "Medikote"),
+          email: activeNormEmail,
           role:
             (activeUser.user_metadata?.role as any) ||
-            (activeUser.email.toLowerCase().includes("admin") ? "superadmin" : "detailer"),
+            (activeNormEmail.includes("admin") ? "superadmin" : "detailer"),
           status: "active",
           territory: "Pusat & Lapangan",
           created_at: new Date().toISOString(),
           offers_count: 0,
         };
-        usersList = [currentAsManaged, ...usersList];
+        userMap.set(activeNormEmail, currentAsManaged);
       }
+
+      let usersList = Array.from(userMap.values());
       writeDemo(MANAGED_USERS_STORE, usersList);
       setManagedUsers(usersList);
 
@@ -411,13 +430,23 @@ export function MedQuoteApp() {
 
   const handleLogin = async (email: string, password: string) => {
     const rawEmail = email.trim();
-    // Normalisasi: jika user mengetik "rosidah", "oky", atau "admin", lengkapi domain @medquote.com
-    const trimmedEmail = rawEmail.includes("@") ? rawEmail : `${rawEmail}@medquote.com`;
+    // Normalisasi: jika user mengetik "rosidah", "oky", atau "admin", lengkapi domain @medikote.com
+    let trimmedEmail = rawEmail.includes("@") ? rawEmail : `${rawEmail}@medikote.com`;
+    // Dukung juga jika user masih mengetik @medquote.com
+    trimmedEmail = trimmedEmail.replace(/@medquote\.com$/i, "@medikote.com");
 
     const localUsers = readDemo<ManagedUser[]>(MANAGED_USERS_STORE, DEFAULT_MANAGED_USERS);
     const matchedUser =
-      localUsers.find((u) => u.email.toLowerCase() === trimmedEmail.toLowerCase()) ||
-      DEFAULT_MANAGED_USERS.find((u) => u.email.toLowerCase() === trimmedEmail.toLowerCase());
+      localUsers.find(
+        (u) =>
+          u.email.toLowerCase() === trimmedEmail.toLowerCase() ||
+          u.email.split("@")[0].toLowerCase() === trimmedEmail.split("@")[0].toLowerCase(),
+      ) ||
+      DEFAULT_MANAGED_USERS.find(
+        (u) =>
+          u.email.toLowerCase() === trimmedEmail.toLowerCase() ||
+          u.email.split("@")[0].toLowerCase() === trimmedEmail.split("@")[0].toLowerCase(),
+      );
 
     if (!supabase) {
       await new Promise((resolve) => setTimeout(resolve, 300));
@@ -947,6 +976,7 @@ export function MedQuoteApp() {
   const isSuperadmin =
     user.role === "superadmin" ||
     user.user_metadata?.role === "superadmin" ||
+    user.email.toLowerCase() === "admin@medikote.com" ||
     user.email.toLowerCase() === "admin@medquote.com" ||
     user.email.toLowerCase().startsWith("admin@");
 
@@ -982,10 +1012,10 @@ export function MedQuoteApp() {
               <div className="flex items-center gap-2 rounded-lg bg-slate-50 px-3 py-1.5 border border-slate-200 text-xs text-slate-700">
                 <CircleUserRound className="h-4 w-4 text-slate-400" />
                 <span className="font-semibold text-slate-800">
-                  {user.name || "Superadmin"}
+                  {(user.name || "Superadmin").replace(/medquote/gi, "Medikote")}
                 </span>
                 <span className="hidden sm:inline text-slate-400">
-                  ({user.email})
+                  ({user.email.replace(/@medquote\.com/gi, "@medikote.com")})
                 </span>
               </div>
               <Button
@@ -1037,7 +1067,16 @@ export function MedQuoteApp() {
           <div className="mt-auto p-4">
             <div className="mb-2 flex min-w-0 items-center gap-3 px-2 py-2">
               <CircleUserRound className="h-5 w-5 shrink-0 text-slate-400" aria-hidden="true" />
-              <div className="min-w-0"><p className="truncate text-sm font-medium text-slate-800">{user.name || user.email}</p>{user.name ? <p className="truncate text-xs text-slate-500">{user.email}</p> : null}</div>
+              <div className="min-w-0">
+                <p className="truncate text-sm font-medium text-slate-800">
+                  {(user.name || user.email).replace(/medquote/gi, "Medikote")}
+                </p>
+                {user.name ? (
+                  <p className="truncate text-xs text-slate-500">
+                    {user.email.replace(/@medquote\.com/gi, "@medikote.com")}
+                  </p>
+                ) : null}
+              </div>
             </div>
             <Button className="w-full justify-start text-red-600 hover:bg-red-50 hover:text-red-700" variant="ghost" onClick={handleLogout}><LogOut className="h-4 w-4 text-red-600" aria-hidden="true" />Keluar</Button>
           </div>
@@ -1398,7 +1437,7 @@ export function MedQuoteApp() {
 
 function AppLoading() {
   return (
-    <div className="flex min-h-screen bg-white" role="status" aria-label="Memuat MedQuote">
+    <div className="flex min-h-screen bg-white" role="status" aria-label="Memuat Medikote">
       <aside className="relative hidden h-screen w-[248px] shrink-0 border-r border-border p-4 lg:block">
         <div className="h-6 w-28 animate-pulse rounded bg-slate-100" />
         <div className="mt-10 space-y-3">

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { MedQuoteApp } from "@/components/medquote-app";
 
 export const metadata: Metadata = {
-  title: "MedQuote",
+  title: "Medikote",
   description: "Kelola produk dan buat penawaran harga obat secara praktis.",
 };
 
